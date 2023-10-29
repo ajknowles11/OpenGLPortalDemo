@@ -138,8 +138,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 	//player walking:
-	{
-		//combine inputs into a move:
+
+	//combine inputs into a move:
 		constexpr float PlayerSpeed = 3.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
@@ -153,6 +153,7 @@ void PlayMode::update(float elapsed) {
 		//get move in world coordinate system:
 		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
 
+	if (player.uses_walkmesh) {
 		//using a for() instead of a while() here so that if walkpoint gets stuck in
 		// some awkward case, code will not infinite loop:
 		for (uint32_t iter = 0; iter < 10; ++iter) {
@@ -220,6 +221,9 @@ void PlayMode::update(float elapsed) {
 
 		camera->transform->position += move.x * right + move.y * forward;
 		*/
+	}
+	else {
+		player.transform->position += remain;
 	}
 
 	//reset button press counters:
