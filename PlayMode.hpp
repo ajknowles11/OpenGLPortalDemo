@@ -17,6 +17,8 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
+	void update_physics(float elapsed);
+
 	//----- game state -----
 
 	//input tracking:
@@ -37,4 +39,23 @@ struct PlayMode : Mode {
 		//camera is at player's head and will be pitched by mouse up/down motion:
 		Scene::Camera *camera = nullptr;
 	} player;
+
+	struct Portal {
+		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_) : drawable(drawable_), box(box_) {}
+		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, Portal *twin_) : drawable(drawable_), box(box_), twin(twin_) {
+			twin->twin = this;
+		}
+		~Portal() {
+			if (twin != nullptr) {
+				twin->twin = nullptr;
+			}
+		}
+		Scene::Drawable const *drawable = nullptr;
+		Portal *twin = nullptr;
+		Scene::BoxCollider box;
+		bool player_in_front = false;
+		bool sleeping = false;
+	};
+
+	std::list<Portal*> portals;
 };

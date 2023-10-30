@@ -116,6 +116,14 @@ struct Scene {
 		float spot_fov = glm::radians(45.0f); //spot cone fov (in radians)
 	};
 
+	struct BoxCollider {
+		BoxCollider() {}
+		BoxCollider(glm::vec3 min_, glm::vec3 max_) : min(min_), max(max_) {}
+		~BoxCollider() {}
+		glm::vec3 min = glm::vec3(0);
+		glm::vec3 max = glm::vec3(0);
+	};
+
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::list< Drawable > drawables;

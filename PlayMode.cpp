@@ -68,9 +68,26 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
+	//set up portals
+	for (auto &drawable : scene.drawables) {
+		if (drawable.transform->name == "Portal0") {
+			auto mesh = basic_meshes->lookup("Portal0");
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max)));
+		}
+		else if (drawable.transform->name == "Portal1") {
+			auto mesh = basic_meshes->lookup("Portal1");
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), portals.front()));
+		}
+	}
+
 }
 
 PlayMode::~PlayMode() {
+	for (auto p : portals) {
+		if (p != nullptr) {
+			delete p;
+		}
+	}
 }
 
 bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size) {
@@ -233,6 +250,36 @@ void PlayMode::update(float elapsed) {
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+	update_physics(elapsed);
+}
+
+void PlayMode::update_physics(float elapsed) {
+	
+	auto point_in_box = [](glm::vec3 x, glm::vec3 min, glm::vec3 max){
+		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
+	};
+
+	for (auto const p : portals) {
+		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
+		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
+		bool now_in_front = 0 <= glm::dot(offset_from_portal, glm::vec3(p_world[1]));
+		if (now_in_front == p->player_in_front) {
+			p->sleeping = false;
+			continue;
+		}
+		p->player_in_front = now_in_front;
+		if (p->sleeping) {
+			p->sleeping = false;
+			continue;
+		}
+		if (point_in_box(p->drawable->transform->make_world_to_local() * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
+			//teleport
+			std::cout << "teleported" << "\n";
+			player.transform->position = p->twin->drawable->transform->make_local_to_world() * glm::vec4(0,0,0,1) + offset_from_portal;
+			p->twin->sleeping = true;
+		}
+	}
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
