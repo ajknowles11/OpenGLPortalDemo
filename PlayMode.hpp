@@ -17,6 +17,8 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
+	void draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLint current_depth);
+
 	void update_physics(float elapsed);
 
 	//----- game state -----
@@ -41,21 +43,27 @@ struct PlayMode : Mode {
 	} player;
 
 	struct Portal {
-		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_) : drawable(drawable_), box(box_) {}
+		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_) : Portal(drawable_, box_, nullptr) {}
 		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, Portal *twin_) : drawable(drawable_), box(box_), twin(twin_) {
-			twin->twin = this;
+			camera = new Scene::Camera(new Scene::Transform());
+			if (twin != nullptr) twin->twin = this;
 		}
 		~Portal() {
 			if (twin != nullptr) {
 				twin->twin = nullptr;
 			}
+			if (camera != nullptr) delete camera->transform;
+			delete camera;
 		}
 		Scene::Drawable const *drawable = nullptr;
 		Portal *twin = nullptr;
 		Scene::BoxCollider box;
+		Scene::Camera *camera = nullptr;
 		bool player_in_front = false;
 		bool sleeping = false;
 	};
+
+	Scene::Transform *debug_sphere = nullptr;
 
 	std::list<Portal*> portals;
 };

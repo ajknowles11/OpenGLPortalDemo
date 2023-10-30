@@ -78,6 +78,9 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 			auto mesh = basic_meshes->lookup("Portal1");
 			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), portals.front()));
 		}
+		else if (drawable.transform->name == "Sphere") {
+			debug_sphere = drawable.transform;
+		}
 	}
 
 }
@@ -262,6 +265,16 @@ void PlayMode::update_physics(float elapsed) {
 
 	for (auto const p : portals) {
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
+		glm::mat4 player_world = player.transform->make_local_to_world();
+		glm::mat4 t_local = p->twin->drawable->transform->make_world_to_local();
+
+		glm::mat4 m = p_world * t_local * player_world;
+		p->camera->transform->position = m * glm::vec4(player.camera->transform->position, 1);
+		p->camera->transform->rotation = m * glm::mat4(player.camera->transform->rotation);
+		p->camera->aspect = player.camera->aspect;
+		p->camera->fovy = player.camera->fovy;
+		p->camera->near = player.camera->near;
+
 		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
 		bool now_in_front = 0 <= glm::dot(offset_from_portal, glm::vec3(p_world[1]));
 		if (now_in_front == p->player_in_front) {
@@ -282,9 +295,96 @@ void PlayMode::update_physics(float elapsed) {
 	}
 }
 
+// https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
+// https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
+void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLint current_depth) {
+	for (auto &p : portals) {
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+
+		glDisable(GL_DEPTH_TEST);
+
+		glEnable(GL_STENCIL_TEST);
+
+		glStencilFunc(GL_NOTEQUAL, current_depth, 0xFF);
+
+		glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
+
+		glStencilMask(0xFF);
+
+		//draw portal in stencil buffer
+		scene.draw_one(*p->twin->drawable, camera);
+
+		if (current_depth == max_depth) {
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthMask(GL_TRUE);
+
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			glEnable(GL_DEPTH_TEST);
+
+			glEnable(GL_STENCIL_TEST);
+
+			glStencilMask(0x00);
+
+			glStencilFunc(GL_EQUAL, current_depth + 1, 0xFF);
+
+			//draw non portals using portal proj matrix ( camera with near plane set to portal (oblique??) )
+			scene.draw(*p->camera);
+		}
+		else {
+			p->camera->aspect = camera.aspect;
+			draw_recursive_portals(*p->camera, max_depth, current_depth + 1);
+		}
+
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+
+		glEnable(GL_STENCIL_TEST);
+		glStencilMask(0xFF);
+
+		glStencilFunc(GL_NOTEQUAL, current_depth + 1, 0xFF);
+
+		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
+
+		//draw portal in stencil buffer
+		scene.draw_one(*p->twin->drawable, camera);
+	}
+
+	glDisable(GL_STENCIL_TEST);
+	glStencilMask(0x00);
+
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+
+	glDepthFunc(GL_ALWAYS);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	for (auto &p : portals) {
+		scene.draw_one(*p->drawable, camera);
+	}
+
+	glDepthFunc(GL_LESS);
+
+	glEnable(GL_STENCIL_TEST);
+	glStencilMask(0x00);
+
+	glStencilFunc(GL_LEQUAL, current_depth, 0xFF);
+
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDepthMask(GL_TRUE);
+
+	glEnable(GL_DEPTH_TEST);
+
+}
+
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
+
 	//update camera aspect ratio for drawable:
-	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
+	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);;
 
 	//set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
@@ -300,6 +400,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
+
+	draw_recursive_portals(*player.camera, 0, 0);
 
 	scene.draw(*player.camera);
 

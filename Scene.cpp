@@ -91,78 +91,91 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
-		//Reference to drawable's pipeline for convenience:
-		Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
-
-		//skip any drawables without a shader program set:
-		if (pipeline.program == 0) continue;
-		//skip any drawables that don't reference any vertex array:
-		if (pipeline.vao == 0) continue;
-		//skip any drawables that don't contain any vertices:
-		if (pipeline.count == 0) continue;
-
-
-		//Set shader program:
-		glUseProgram(pipeline.program);
-
-		//Set attribute sources:
-		glBindVertexArray(pipeline.vao);
-
-		//Configure program uniforms:
-
-		//the object-to-world matrix is used in all three of these uniforms:
-		assert(drawable.transform); //drawables *must* have a transform
-		glm::mat4x3 object_to_world = drawable.transform->make_local_to_world();
-
-		//OBJECT_TO_CLIP takes vertices from object space to clip space:
-		if (pipeline.OBJECT_TO_CLIP_mat4 != -1U) {
-			glm::mat4 object_to_clip = world_to_clip * glm::mat4(object_to_world);
-			glUniformMatrix4fv(pipeline.OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(object_to_clip));
+		if (drawable.transform->name == "Portal0" || drawable.transform->name == "Portal1") {
+			continue;
 		}
-
-		//the object-to-light matrix is used in the next two uniforms:
-		glm::mat4x3 object_to_light = world_to_light * glm::mat4(object_to_world);
-
-		//OBJECT_TO_CLIP takes vertices from object space to light space:
-		if (pipeline.OBJECT_TO_LIGHT_mat4x3 != -1U) {
-			glUniformMatrix4x3fv(pipeline.OBJECT_TO_LIGHT_mat4x3, 1, GL_FALSE, glm::value_ptr(object_to_light));
-		}
-
-		//NORMAL_TO_CLIP takes normals from object space to light space:
-		if (pipeline.NORMAL_TO_LIGHT_mat3 != -1U) {
-			glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
-			glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
-		}
-
-		//set any requested custom uniforms:
-		if (pipeline.set_uniforms) pipeline.set_uniforms();
-
-		//set up textures:
-		for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
-			if (pipeline.textures[i].texture != 0) {
-				glActiveTexture(GL_TEXTURE0 + i);
-				glBindTexture(pipeline.textures[i].target, pipeline.textures[i].texture);
-			}
-		}
-
-		//draw the object:
-		glDrawArrays(pipeline.type, pipeline.start, pipeline.count);
-
-		//un-bind textures:
-		for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
-			if (pipeline.textures[i].texture != 0) {
-				glActiveTexture(GL_TEXTURE0 + i);
-				glBindTexture(pipeline.textures[i].target, 0);
-			}
-		}
-		glActiveTexture(GL_TEXTURE0);
-
+		draw_one(drawable, world_to_clip, world_to_light);
 	}
 
 	glUseProgram(0);
 	glBindVertexArray(0);
 
 	GL_ERRORS();
+}
+
+void Scene::draw_one(Drawable const &drawable, Camera const &camera) const {
+	assert(camera.transform);
+	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
+	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
+	draw_one(drawable, world_to_clip, world_to_light);
+}
+
+void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+	//Reference to drawable's pipeline for convenience:
+	Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
+
+	//skip any drawables without a shader program set:
+	if (pipeline.program == 0) return;
+	//skip any drawables that don't reference any vertex array:
+	if (pipeline.vao == 0) return;
+	//skip any drawables that don't contain any vertices:
+	if (pipeline.count == 0) return;
+
+
+	//Set shader program:
+	glUseProgram(pipeline.program);
+
+	//Set attribute sources:
+	glBindVertexArray(pipeline.vao);
+
+	//Configure program uniforms:
+
+	//the object-to-world matrix is used in all three of these uniforms:
+	assert(drawable.transform); //drawables *must* have a transform
+	glm::mat4x3 object_to_world = drawable.transform->make_local_to_world();
+
+	//OBJECT_TO_CLIP takes vertices from object space to clip space:
+	if (pipeline.OBJECT_TO_CLIP_mat4 != -1U) {
+		glm::mat4 object_to_clip = world_to_clip * glm::mat4(object_to_world);
+		glUniformMatrix4fv(pipeline.OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(object_to_clip));
+	}
+
+	//the object-to-light matrix is used in the next two uniforms:
+	glm::mat4x3 object_to_light = world_to_light * glm::mat4(object_to_world);
+
+	//OBJECT_TO_CLIP takes vertices from object space to light space:
+	if (pipeline.OBJECT_TO_LIGHT_mat4x3 != -1U) {
+		glUniformMatrix4x3fv(pipeline.OBJECT_TO_LIGHT_mat4x3, 1, GL_FALSE, glm::value_ptr(object_to_light));
+	}
+
+	//NORMAL_TO_CLIP takes normals from object space to light space:
+	if (pipeline.NORMAL_TO_LIGHT_mat3 != -1U) {
+		glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
+		glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
+	}
+
+	//set any requested custom uniforms:
+	if (pipeline.set_uniforms) pipeline.set_uniforms();
+
+	//set up textures:
+	for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
+		if (pipeline.textures[i].texture != 0) {
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(pipeline.textures[i].target, pipeline.textures[i].texture);
+		}
+	}
+
+	//draw the object:
+	glDrawArrays(pipeline.type, pipeline.start, pipeline.count);
+
+	//un-bind textures:
+	for (uint32_t i = 0; i < Drawable::Pipeline::TextureCount; ++i) {
+		if (pipeline.textures[i].texture != 0) {
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(pipeline.textures[i].target, 0);
+		}
+	}
+	glActiveTexture(GL_TEXTURE0);
 }
 
 
