@@ -162,7 +162,7 @@ void PlayMode::update(float elapsed) {
 	//player walking:
 
 	//combine inputs into a move:
-		constexpr float PlayerSpeed = 6.0f;
+		constexpr float PlayerSpeed = 3.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -319,7 +319,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 		glStencilMask(0xFF);
 
 		//draw portal in stencil buffer
-		scene.draw_one(*p->twin->drawable, camera, true, clip_plane);
+		scene.draw_one(*p->twin->drawable, camera, true, p->twin->get_self_clip_plane());
 
 		if (current_depth == max_depth) {
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -354,7 +354,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		//draw portal in stencil buffer
-		scene.draw_one(*p->twin->drawable, camera, true, clip_plane);
+		scene.draw_one(*p->twin->drawable, camera, true, p->twin->get_self_clip_plane());
 	}
 
 	glDisable(GL_STENCIL_TEST);
@@ -370,7 +370,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	for (auto &p : portals) {
-		scene.draw_one(*p->drawable, camera, true, clip_plane);
+		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
 	}
 
 	glDepthFunc(GL_LESS);
@@ -456,6 +456,20 @@ glm::vec4 PlayMode::Portal::get_clipping_plane() {
 	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
 	glm::vec3 const camera_offset_from_portal = camera->transform->position - p_origin;
 	if (glm::dot(p_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
+
+	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
+}
+
+// gets clipping plane used for portal mesh itself (stop flicker)
+glm::vec4 PlayMode::Portal::get_self_clip_plane() {
+	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
+	glm::mat4x3 const t_world = twin->drawable->transform->make_local_to_world();
+	glm::vec3 p_forward = glm::normalize(p_world[1]);
+	glm::vec3 t_forward = glm::normalize(t_world[1]);
+	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
+	glm::vec3 const t_origin = glm::vec3(t_world * glm::vec4(0,0,0,1));
+	glm::vec3 const camera_offset_from_portal = twin->camera->transform->position - t_origin;
+	if (glm::dot(t_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
 
 	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
 }

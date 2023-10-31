@@ -63,6 +63,7 @@ struct PlayMode : Mode {
 		bool sleeping = false;
 
 		glm::vec4 get_clipping_plane();
+		glm::vec4 get_self_clip_plane();
 	};
 
 	Scene::Transform *debug_sphere = nullptr;

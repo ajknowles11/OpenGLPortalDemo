@@ -100,10 +100,6 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
 	}
 
-	if (use_clip) {
-		glDisable(GL_CLIP_DISTANCE0);
-	}
-
 	glUseProgram(0);
 	glBindVertexArray(0);
 
@@ -114,7 +110,7 @@ void Scene::draw_one(Drawable const &drawable, Camera const &camera, bool use_cl
 	assert(camera.transform);
 	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
 	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
-	draw_one(drawable, world_to_clip, world_to_light);
+	draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
 }
 
 void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool use_clip, glm::vec4 clip_plane) const {
@@ -127,6 +123,10 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	if (pipeline.vao == 0) return;
 	//skip any drawables that don't contain any vertices:
 	if (pipeline.count == 0) return;
+
+	if (use_clip) {
+		glEnable(GL_CLIP_DISTANCE0);
+	}
 
 
 	//Set shader program:
@@ -187,6 +187,10 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 		}
 	}
 	glActiveTexture(GL_TEXTURE0);
+
+	if (use_clip) {
+		glDisable(GL_CLIP_DISTANCE0);
+	}
 }
 
 
