@@ -286,11 +286,12 @@ void PlayMode::update_physics(float elapsed) {
 			p->sleeping = false;
 			continue;
 		}
-		if (point_in_box(p->drawable->transform->make_world_to_local() * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
+		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
+		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
 			std::cout << "teleported" << "\n";
 
-			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p->drawable->transform->make_world_to_local());
+			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
 
 			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
