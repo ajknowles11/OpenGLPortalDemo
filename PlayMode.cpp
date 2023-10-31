@@ -263,7 +263,7 @@ void PlayMode::update_physics(float elapsed) {
 		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
 	};
 
-	for (auto const p : portals) {
+	for (auto const &p : portals) {
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 		glm::mat4 player_world = player.transform->make_local_to_world();
 		glm::mat4 t_local = p->twin->drawable->transform->make_world_to_local();
@@ -276,7 +276,7 @@ void PlayMode::update_physics(float elapsed) {
 		p->camera->near = player.camera->near;
 
 		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
-		bool now_in_front = 0 <= glm::dot(offset_from_portal, glm::vec3(p_world[1]));
+		bool now_in_front = 0 <= glm::dot(offset_from_portal, glm::normalize(glm::vec3(p_world[1])));
 		if (now_in_front == p->player_in_front) {
 			p->sleeping = false;
 			continue;
@@ -289,7 +289,11 @@ void PlayMode::update_physics(float elapsed) {
 		if (point_in_box(p->drawable->transform->make_world_to_local() * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
 			std::cout << "teleported" << "\n";
-			player.transform->position = p->twin->drawable->transform->make_local_to_world() * glm::vec4(0,0,0,1) + offset_from_portal;
+
+			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p->drawable->transform->make_world_to_local());
+
+			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
+			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
 			p->twin->sleeping = true;
 		}
 	}
@@ -299,6 +303,7 @@ void PlayMode::update_physics(float elapsed) {
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
 void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLint current_depth) {
 	for (auto &p : portals) {
+
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glDepthMask(GL_FALSE);
 
@@ -330,7 +335,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLi
 			glStencilFunc(GL_EQUAL, current_depth + 1, 0xFF);
 
 			//draw non portals using portal proj matrix ( camera with near plane set to portal (oblique??) )
-			scene.draw(*p->camera);
+			scene.draw(*p->camera, true, p->get_clipping_plane());
 		}
 		else {
 			p->camera->aspect = camera.aspect;
@@ -439,4 +444,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 	}
 	GL_ERRORS();
+}
+
+glm::vec4 PlayMode::Portal::get_clipping_plane() {
+	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
+	glm::vec3 portal_forward = glm::normalize(p_world[1]);
+	glm::vec3 const portal_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
+	glm::vec3 const camera_offset_from_portal = twin->camera->transform->position - portal_origin;
+	if (glm::dot(portal_forward, camera_offset_from_portal) >= 0) portal_forward *= -1;
+	std::cout << portal_forward.x << ", " << portal_forward.y << ", " << portal_forward.z << "\n";
+	return glm::vec4(portal_forward, glm::dot(portal_forward, portal_origin));
 }

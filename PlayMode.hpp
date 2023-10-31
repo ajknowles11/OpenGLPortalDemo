@@ -61,6 +61,8 @@ struct PlayMode : Mode {
 		Scene::Camera *camera = nullptr;
 		bool player_in_front = false;
 		bool sleeping = false;
+
+		glm::vec4 get_clipping_plane();
 	};
 
 	Scene::Transform *debug_sphere = nullptr;

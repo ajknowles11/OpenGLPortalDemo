@@ -80,21 +80,28 @@ glm::mat4 Scene::Camera::make_projection() const {
 //-------------------------
 
 
-void Scene::draw(Camera const &camera) const {
+void Scene::draw(Camera const &camera, bool use_clip, glm::vec4 clip_plane) const {
 	assert(camera.transform);
 	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
 	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
-	draw(world_to_clip, world_to_light);
+	draw(world_to_clip, world_to_light, use_clip, clip_plane);
 }
 
-void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool use_clip, glm::vec4 clip_plane) const {
+	if (use_clip) {
+		glEnable(GL_CLIP_DISTANCE0);
+	}
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
 		if (drawable.transform->name == "Portal0" || drawable.transform->name == "Portal1") {
 			continue;
 		}
-		draw_one(drawable, world_to_clip, world_to_light);
+		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
+	}
+
+	if (use_clip) {
+		glDisable(GL_CLIP_DISTANCE0);
 	}
 
 	glUseProgram(0);
@@ -103,14 +110,14 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 	GL_ERRORS();
 }
 
-void Scene::draw_one(Drawable const &drawable, Camera const &camera) const {
+void Scene::draw_one(Drawable const &drawable, Camera const &camera, bool use_clip, glm::vec4 clip_plane) const {
 	assert(camera.transform);
 	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
 	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 	draw_one(drawable, world_to_clip, world_to_light);
 }
 
-void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light) const {
+void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool use_clip, glm::vec4 clip_plane) const {
 	//Reference to drawable's pipeline for convenience:
 	Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
 
@@ -152,6 +159,10 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	if (pipeline.NORMAL_TO_LIGHT_mat3 != -1U) {
 		glm::mat3 normal_to_light = glm::inverse(glm::transpose(glm::mat3(object_to_light)));
 		glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
+	}
+
+	if (use_clip && pipeline.CLIP_PLANE_vec4 != -1U) {
+		glUniform4fv(pipeline.CLIP_PLANE_vec4, 1, glm::value_ptr(clip_plane));
 	}
 
 	//set any requested custom uniforms:
