@@ -68,5 +68,5 @@ struct PlayMode : Mode {
 
 	Scene::Transform *debug_sphere = nullptr;
 
-	std::list<Portal*> portals;
+	std::vector<Portal*> portals;
 };

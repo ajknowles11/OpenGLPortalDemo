@@ -15,13 +15,13 @@
 
 GLuint basic_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("basic_portals.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("sixrooms.pnct"));
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("basic_portals.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("sixrooms.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -48,6 +48,7 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
+	player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -76,7 +77,23 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 		}
 		else if (drawable.transform->name == "Portal1") {
 			auto mesh = basic_meshes->lookup("Portal1");
-			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), portals.front()));
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), portals[0]));
+		}
+		else if (drawable.transform->name == "Portal2") {
+			auto mesh = basic_meshes->lookup("Portal2");
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max)));
+		}
+		else if (drawable.transform->name == "Portal3") {
+			auto mesh = basic_meshes->lookup("Portal3");
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), portals[2]));
+		}
+		else if (drawable.transform->name == "Portal4") {
+			auto mesh = basic_meshes->lookup("Portal4");
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), portals[4]));
+		}
+		else if (drawable.transform->name == "Portal5") {
+			auto mesh = basic_meshes->lookup("Portal5");
+			portals.emplace_back(new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max)));
 		}
 		else if (drawable.transform->name == "Sphere") {
 			debug_sphere = drawable.transform;
@@ -162,7 +179,7 @@ void PlayMode::update(float elapsed) {
 	//player walking:
 
 	//combine inputs into a move:
-		constexpr float PlayerSpeed = 3.0f;
+		constexpr float PlayerSpeed = 5.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -289,7 +306,7 @@ void PlayMode::update_physics(float elapsed) {
 		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
-			std::cout << "teleported" << "\n";
+			//std::cout << "teleported" << "\n";
 
 			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
 
@@ -339,7 +356,6 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 			scene.draw(*p->camera, true, p->get_clipping_plane());
 		}
 		else {
-			p->camera->aspect = camera.aspect;
 			draw_recursive_portals(*p->camera, p->get_clipping_plane(), max_depth, current_depth + 1);
 		}
 
@@ -402,7 +418,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
 	glUseProgram(0);
 
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
 	glClearDepth(1.0f); //1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

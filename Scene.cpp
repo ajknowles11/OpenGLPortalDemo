@@ -94,7 +94,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
-		if (drawable.transform->name == "Portal0" || drawable.transform->name == "Portal1") {
+		if (drawable.transform->name.substr(0, 6) == "Portal") {
 			continue;
 		}
 		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
