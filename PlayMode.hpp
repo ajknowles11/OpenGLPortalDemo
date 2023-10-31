@@ -17,7 +17,7 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
-	void draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLint current_depth);
+	void draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane, GLint max_depth, GLint current_depth);
 
 	void update_physics(float elapsed);
 

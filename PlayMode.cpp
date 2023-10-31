@@ -301,7 +301,7 @@ void PlayMode::update_physics(float elapsed) {
 
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
-void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLint current_depth) {
+void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane, GLint max_depth, GLint current_depth) {
 	for (auto &p : portals) {
 
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -318,7 +318,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLi
 		glStencilMask(0xFF);
 
 		//draw portal in stencil buffer
-		scene.draw_one(*p->twin->drawable, camera);
+		scene.draw_one(*p->twin->drawable, camera, true, clip_plane);
 
 		if (current_depth == max_depth) {
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -339,7 +339,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLi
 		}
 		else {
 			p->camera->aspect = camera.aspect;
-			draw_recursive_portals(*p->camera, max_depth, current_depth + 1);
+			draw_recursive_portals(*p->camera, p->get_clipping_plane(), max_depth, current_depth + 1);
 		}
 
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -353,7 +353,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLi
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		//draw portal in stencil buffer
-		scene.draw_one(*p->twin->drawable, camera);
+		scene.draw_one(*p->twin->drawable, camera, true, clip_plane);
 	}
 
 	glDisable(GL_STENCIL_TEST);
@@ -369,7 +369,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLi
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	for (auto &p : portals) {
-		scene.draw_one(*p->drawable, camera);
+		scene.draw_one(*p->drawable, camera, true, clip_plane);
 	}
 
 	glDepthFunc(GL_LESS);
@@ -383,6 +383,8 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, GLint max_depth, GLi
 	glDepthMask(GL_TRUE);
 
 	glEnable(GL_DEPTH_TEST);
+
+	scene.draw(camera, true, clip_plane);
 
 }
 
@@ -406,9 +408,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
 
-	draw_recursive_portals(*player.camera, 0, 0);
+	glm::mat4x3 const player_cam_world = player.camera->transform->make_local_to_world();
 
-	scene.draw(*player.camera);
+	draw_recursive_portals(*player.camera, glm::vec4(-player_cam_world[2], -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 0, 0);
 
 	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{
