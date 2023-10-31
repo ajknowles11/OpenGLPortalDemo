@@ -100,6 +100,14 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 		}
 	}
 
+	//Find Buttons
+	for (auto &transform : scene.transforms) {
+		if (transform.name.rfind("b_") == 0) {
+			std::cout << "Found button: " << transform.name << "\n";
+			button_transforms.emplace_back(std::make_pair(&transform, true));
+		}
+	}
+
 }
 
 PlayMode::~PlayMode() {
@@ -264,6 +272,20 @@ void PlayMode::update(float elapsed) {
 	else {
 		player.transform->position += remain;
 	}
+
+	//check if button is pressed
+	for (auto &button : button_transforms) {
+		if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second) {
+			button.first->position.z -= 0.2f;
+			button.second = false;
+			std::cout << "Button pressed: " << button.first->name << "\n";
+			std::cout << "Button z pos: " << button.first->position.z << "\n";
+		}
+		else {
+			//transform->position.z = 0.0f;
+		}
+	}
+
 
 	//reset button press counters:
 	left.downs = 0;

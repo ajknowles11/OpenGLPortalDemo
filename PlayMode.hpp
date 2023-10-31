@@ -69,4 +69,6 @@ struct PlayMode : Mode {
 	Scene::Transform *debug_sphere = nullptr;
 
 	std::vector<Portal*> portals;
+
+	std::vector<std::pair<Scene::Transform*, bool>> button_transforms;
 };
