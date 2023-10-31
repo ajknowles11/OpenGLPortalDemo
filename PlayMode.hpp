@@ -70,12 +70,17 @@ struct PlayMode : Mode {
 
 	std::vector<Portal*> portals;
 
-	std::vector<std::pair<Scene::Transform*, bool>> buttons;
+	struct ButtonInfo {
+		bool not_pressed;
+		bool active;
+	};
+
+	std::vector<std::pair<Scene::Transform*, ButtonInfo>> buttons;
 
 	std::string code[4] = {"blu", "yel", "gre", "pur"};
 
-	int button_index = 0;
+	std::vector<std::string> inputs; 
 
-	void CheckPuzzle(std::string button_name);
+	void CheckPuzzle();
 	void ResetAllButtons();
 };

@@ -48,7 +48,7 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
-	player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
+	player.transform->position = glm::vec3(0, -16.0f, -1.8f);
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -104,7 +104,7 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 	for (auto &transform : scene.transforms) {
 		if (transform.name.rfind("b_") == 0) {
 			//std::cout << "Found button: " << transform.name << "\n";
-			buttons.emplace_back(std::make_pair(&transform, true));
+			buttons.emplace_back(std::make_pair(&transform, ButtonInfo{true, true}));
 		}
 	}
 
@@ -275,10 +275,21 @@ void PlayMode::update(float elapsed) {
 
 	//check if button is pressed
 	for (auto &button : buttons) {
-		if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second) {
+		if (glm::distance(player.transform->position, button.first->position) < 1.5f) {
+			std::cout << button.second.not_pressed <<", " << button.second.active << "\n";
+		}
+		if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second.not_pressed && button.second.active) {
 			button.first->position.z -= 0.2f;
-			button.second = false;
-			CheckPuzzle(button.first->name.substr(2, 3));
+			button.second.not_pressed = false;
+			inputs.emplace_back(button.first->name.substr(2, 3));
+			CheckPuzzle();
+		}
+		else {
+			if (!button.second.active) {
+				button.second.active = true;
+				button.second.not_pressed = true;
+				inputs.clear();
+			}
 		}
 	}
 
@@ -292,27 +303,34 @@ void PlayMode::update(float elapsed) {
 	update_physics(elapsed);
 }
 
-void PlayMode::CheckPuzzle(std::string button_name) {
-	if (button_name == code[button_index]) {
-		button_index++;
-	}
-	else {
-		ResetAllButtons();
-		return;
-	}
-	if (button_index >= 4) {
+void PlayMode::CheckPuzzle() {
+	if (inputs.size() >= 4) {
+		for (size_t i = 0; i < 4; i++) {
+			if (inputs[i] != code[i]) {
+				ResetAllButtons();
+				return;
+			}
+		}
 		std::cout << "You Win!" << "\n";
 	}
-	//ResetAllButtons();
 }
 
 void PlayMode::ResetAllButtons(){
 	for (auto &button : buttons) {
-		if(!button.second)
+		if(!button.second.not_pressed)
 			button.first->position.z += 0.2f;
-		button.second = true;
+		button.second.not_pressed = true;
+
+		if (button.first->name.substr(2,3) == inputs[inputs.size() - 1]) {
+			button.second.active = false;
+			button.first->position.z += 0.2f;
+			button.second.not_pressed = true;
+		}
+		else {
+			button.second.active = true;
+		}
 	}
-	button_index = 0;
+	inputs.clear();
 }
 
 void PlayMode::update_physics(float elapsed) {
