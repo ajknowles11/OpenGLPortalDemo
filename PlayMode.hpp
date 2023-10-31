@@ -72,6 +72,10 @@ struct PlayMode : Mode {
 
 	std::vector<std::pair<Scene::Transform*, bool>> buttons;
 
-	void CheckPuzzle();
+	std::string code[4] = {"blu", "yel", "gre", "pur"};
+
+	int button_index = 0;
+
+	void CheckPuzzle(std::string button_name);
 	void ResetAllButtons();
 };

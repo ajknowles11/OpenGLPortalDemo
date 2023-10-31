@@ -278,7 +278,7 @@ void PlayMode::update(float elapsed) {
 		if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second) {
 			button.first->position.z -= 0.2f;
 			button.second = false;
-			CheckPuzzle();
+			CheckPuzzle(button.first->name.substr(2, 3));
 		}
 	}
 
@@ -292,13 +292,17 @@ void PlayMode::update(float elapsed) {
 	update_physics(elapsed);
 }
 
-void PlayMode::CheckPuzzle() {
-	for (auto &button : buttons) {
-		if (button.second) {
-			return;
-		}
+void PlayMode::CheckPuzzle(std::string button_name) {
+	if (button_name == code[button_index]) {
+		button_index++;
 	}
-	std::cout << "You Win!" << "\n";
+	else {
+		ResetAllButtons();
+		return;
+	}
+	if (button_index >= 4) {
+		std::cout << "You Win!" << "\n";
+	}
 	//ResetAllButtons();
 }
 
@@ -308,6 +312,7 @@ void PlayMode::ResetAllButtons(){
 			button.first->position.z += 0.2f;
 		button.second = true;
 	}
+	button_index = 0;
 }
 
 void PlayMode::update_physics(float elapsed) {
