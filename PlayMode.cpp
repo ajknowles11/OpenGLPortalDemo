@@ -103,8 +103,8 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 	//Find Buttons
 	for (auto &transform : scene.transforms) {
 		if (transform.name.rfind("b_") == 0) {
-			std::cout << "Found button: " << transform.name << "\n";
-			button_transforms.emplace_back(std::make_pair(&transform, true));
+			//std::cout << "Found button: " << transform.name << "\n";
+			buttons.emplace_back(std::make_pair(&transform, true));
 		}
 	}
 
@@ -274,15 +274,11 @@ void PlayMode::update(float elapsed) {
 	}
 
 	//check if button is pressed
-	for (auto &button : button_transforms) {
+	for (auto &button : buttons) {
 		if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second) {
 			button.first->position.z -= 0.2f;
 			button.second = false;
-			std::cout << "Button pressed: " << button.first->name << "\n";
-			std::cout << "Button z pos: " << button.first->position.z << "\n";
-		}
-		else {
-			//transform->position.z = 0.0f;
+			CheckPuzzle();
 		}
 	}
 
@@ -294,6 +290,24 @@ void PlayMode::update(float elapsed) {
 	down.downs = 0;
 
 	update_physics(elapsed);
+}
+
+void PlayMode::CheckPuzzle() {
+	for (auto &button : buttons) {
+		if (button.second) {
+			return;
+		}
+	}
+	std::cout << "You Win!" << "\n";
+	//ResetAllButtons();
+}
+
+void PlayMode::ResetAllButtons(){
+	for (auto &button : buttons) {
+		if(!button.second)
+			button.first->position.z += 0.2f;
+		button.second = true;
+	}
 }
 
 void PlayMode::update_physics(float elapsed) {

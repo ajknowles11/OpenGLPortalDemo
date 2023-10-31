@@ -70,5 +70,8 @@ struct PlayMode : Mode {
 
 	std::vector<Portal*> portals;
 
-	std::vector<std::pair<Scene::Transform*, bool>> button_transforms;
+	std::vector<std::pair<Scene::Transform*, bool>> buttons;
+
+	void CheckPuzzle();
+	void ResetAllButtons();
 };
