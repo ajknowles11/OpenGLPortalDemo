@@ -446,12 +446,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	GL_ERRORS();
 }
 
+// gets clipping plane used by portal's camera
 glm::vec4 PlayMode::Portal::get_clipping_plane() {
 	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
-	glm::vec3 portal_forward = glm::normalize(p_world[1]);
-	glm::vec3 const portal_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
-	glm::vec3 const camera_offset_from_portal = twin->camera->transform->position - portal_origin;
-	if (glm::dot(portal_forward, camera_offset_from_portal) >= 0) portal_forward *= -1;
-	std::cout << portal_forward.x << ", " << portal_forward.y << ", " << portal_forward.z << "\n";
-	return glm::vec4(portal_forward, glm::dot(portal_forward, portal_origin));
+	glm::vec3 p_forward = glm::normalize(p_world[1]);
+	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
+	glm::vec3 const camera_offset_from_portal = camera->transform->position - p_origin;
+	if (glm::dot(p_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
+
+	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
 }
