@@ -15,13 +15,13 @@
 
 GLuint basic_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("sixrooms.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("basic_portals.pnct"));
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
 Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("sixrooms.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("basic_portals.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -48,7 +48,8 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
-	player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
+	//player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
+	player.transform->position = glm::vec3(3.8, -10.0f, 0.0f);
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -336,7 +337,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 		glStencilMask(0xFF);
 
 		//draw portal in stencil buffer
-		scene.draw_one(*p->twin->drawable, camera, true, p->twin->get_self_clip_plane());
+		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
 
 		if (current_depth == max_depth) {
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -353,10 +354,10 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 			glStencilFunc(GL_EQUAL, current_depth + 1, 0xFF);
 
 			//draw non portals using portal proj matrix ( camera with near plane set to portal (oblique??) )
-			scene.draw(*p->camera, true, p->get_clipping_plane());
+			scene.draw(*p->twin->camera, true, p->twin->get_clipping_plane());
 		}
 		else {
-			draw_recursive_portals(*p->camera, p->get_clipping_plane(), max_depth, current_depth + 1);
+			draw_recursive_portals(*p->twin->camera, p->twin->get_clipping_plane(), max_depth, current_depth + 1);
 		}
 
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -370,31 +371,27 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		//draw portal in stencil buffer
-		scene.draw_one(*p->twin->drawable, camera, true, p->twin->get_self_clip_plane());
+		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
+
+		
+
 	}
 
 	glDisable(GL_STENCIL_TEST);
 	glStencilMask(0x00);
 
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
-	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
-
-	glDepthFunc(GL_ALWAYS);
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	for (auto &p : portals) {
+	//now draw portal in depth buffer
+	for (auto p : portals)
 		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
-	}
-
-	glDepthFunc(GL_LESS);
 
 	glEnable(GL_STENCIL_TEST);
 	glStencilMask(0x00);
 
-	glStencilFunc(GL_LEQUAL, current_depth, 0xFF);
+	glStencilFunc(GL_GEQUAL, current_depth, 0xFF);
 
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glDepthMask(GL_TRUE);
