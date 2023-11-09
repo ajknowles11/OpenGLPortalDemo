@@ -17,7 +17,7 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
-	void draw_recursive_portals(glm::mat4 view_mat, glm::vec4 clip_plane, GLint max_depth, GLint current_depth);
+	void draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, glm::vec4 clip_plane, GLint max_depth, GLint current_depth);
 
 	void handle_portals();
 
@@ -43,30 +43,31 @@ struct PlayMode : Mode {
 	} player;
 
 	struct Portal {
-		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_) : Portal(drawable_, box_, nullptr) {}
-		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, Portal *twin_) : drawable(drawable_), box(box_), twin(twin_) {
-			camera = new Scene::Camera(new Scene::Transform());
+		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_) : Portal(drawable_, box_, on_walkmesh_, nullptr) {}
+		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_, Portal *twin_) : drawable(drawable_), box(box_), on_walkmesh(on_walkmesh_), twin(twin_) {
 			if (twin != nullptr) twin->twin = this;
 		}
 		~Portal() {
 			if (twin != nullptr) {
 				twin->twin = nullptr;
 			}
-			if (camera != nullptr) delete camera->transform;
-			delete camera;
 		}
 		Scene::Drawable const *drawable = nullptr;
 		Portal *twin = nullptr;
 		Scene::BoxCollider box;
-		Scene::Camera *camera = nullptr;
 		bool player_in_front = false;
 		bool sleeping = false;
 
-		glm::vec4 get_clipping_plane();
-		glm::vec4 get_self_clip_plane();
+		bool active = false;
+		std::string on_walkmesh;
+
+		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
+		glm::vec4 get_self_clip_plane(glm::vec3 view_pos);
 	};
 
-	Scene::Transform *debug_sphere = nullptr;
+	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
-	std::vector<Portal*> portals;
+	WalkMesh const *walkmesh = nullptr;
+
+	std::unordered_map<std::string, Portal*> portals;
 };
