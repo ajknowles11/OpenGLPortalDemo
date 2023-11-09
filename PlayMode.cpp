@@ -384,7 +384,7 @@ void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec4 clip_plane, 
 		{
 			// Recursion case
 			// Pass our new view matrix and the clipped projection matrix (see above)
-			draw_recursive_portals(new_view_mat, p->twin->get_self_clip_plane(), max_depth, current_depth + 1);
+			draw_recursive_portals(new_view_mat, p->twin->get_clipping_plane(), max_depth, current_depth + 1);
 		}
 
 		// Disable color and depth drawing
