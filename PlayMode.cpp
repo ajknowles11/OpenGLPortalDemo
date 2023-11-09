@@ -272,10 +272,10 @@ void PlayMode::update(float elapsed) {
 	up.downs = 0;
 	down.downs = 0;
 
-	update_physics(elapsed);
+	handle_portals();
 }
 
-void PlayMode::update_physics(float elapsed) {
+void PlayMode::handle_portals() {
 	
 	auto point_in_box = [](glm::vec3 x, glm::vec3 min, glm::vec3 max){
 		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
@@ -320,7 +320,7 @@ void PlayMode::update_physics(float elapsed) {
 
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
-void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane, GLint max_depth, GLint current_depth) {
+void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec4 clip_plane, GLint max_depth, GLint current_depth) {
 	for (auto &p : portals) {
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -345,7 +345,11 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 		glStencilMask(0xFF);
 
 		// Draw portal into stencil buffer
-		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
+		scene.draw_one(*p->drawable, view_mat, glm::mat4x3(1.0f), true, p->get_self_clip_plane());
+
+
+		// Calculate new camera position as if player was already teleported
+		glm::mat4 const &new_view_mat = view_mat * glm::mat4(p->drawable->transform->make_local_to_world()) * glm::mat4(p->twin->drawable->transform->make_world_to_local());
 
 		// Base case, render inside of inner portal
 		if (current_depth == max_depth) {
@@ -374,13 +378,13 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
-			scene.draw(*p->twin->camera, true, p->twin->get_clipping_plane());
+			scene.draw(new_view_mat, glm::mat4x3(1.0f), true, p->twin->get_clipping_plane());
 		}
 		else
 		{
 			// Recursion case
 			// Pass our new view matrix and the clipped projection matrix (see above)
-			draw_recursive_portals(*p->twin->camera, p->twin->get_clipping_plane(), max_depth, current_depth + 1);
+			draw_recursive_portals(new_view_mat, p->twin->get_self_clip_plane(), max_depth, current_depth + 1);
 		}
 
 		// Disable color and depth drawing
@@ -402,7 +406,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
-		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
+		scene.draw_one(*p->drawable, view_mat, glm::mat4x3(1.0f), true, p->get_self_clip_plane());
 	}
 
 	// Disable the stencil test and stencil writing
@@ -424,7 +428,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 
 	// Draw portals into depth buffer
 	for (auto &p : portals)
-		scene.draw_one(*p->drawable, camera, true, p->get_self_clip_plane());
+		scene.draw_one(*p->drawable, view_mat, glm::mat4x3(1.0f), true, p->get_self_clip_plane());
 
 	// Reset the depth function to the default
 	glDepthFunc(GL_LESS);
@@ -446,7 +450,7 @@ void PlayMode::draw_recursive_portals(Scene::Camera camera, glm::vec4 clip_plane
 	glEnable(GL_DEPTH_TEST);
 
 	// Draw scene objects normally, only at recursionLevel
-	scene.draw(camera, true, clip_plane);
+	scene.draw(view_mat, glm::mat4x3(1.0f), true, clip_plane);
 
 }
 
@@ -472,8 +476,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	glm::mat4x3 const player_cam_world = player.camera->transform->make_local_to_world();
 
-	draw_recursive_portals(*player.camera, glm::vec4(-player_cam_world[2],
-			 -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 0, 0);
+	draw_recursive_portals(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()), glm::vec4(-player_cam_world[2],
+			 -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 4, 0);
 
 	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{
