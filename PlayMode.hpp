@@ -76,6 +76,8 @@ struct PlayMode : Mode {
 
 	int button_index = 0;
 
+	bool puzzle_solved = false;
+
 	void CheckPuzzle(std::string button_name);
 	void ResetAllButtons();
 };

@@ -5,6 +5,7 @@
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
 #include "Load.hpp"
+#include "Sound.hpp"
 #include "gl_errors.hpp"
 #include "data_path.hpp"
 
@@ -19,7 +20,12 @@ Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
-
+Load< Sound::Sample > correct_choice(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("correct-choice.wav"));
+});
+Load< Sound::Sample > wrong_choice(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("wrong-choice.wav"));
+});
 Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("sixrooms.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
@@ -294,13 +300,18 @@ void PlayMode::update(float elapsed) {
 
 void PlayMode::CheckPuzzle(std::string button_name) {
 	if (button_name == code[button_index]) {
+		// play correct sound
+		Sound::play(*correct_choice, 1.0f, 0.0f);
 		button_index++;
 	}
 	else {
+		// play wrong sound
+		Sound::play(*wrong_choice, 1.0f, 0.0f);
 		ResetAllButtons();
 		return;
 	}
 	if (button_index >= 4) {
+		puzzle_solved = true;
 		std::cout << "You Win!" << "\n";
 	}
 	//ResetAllButtons();
@@ -503,6 +514,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		
+		if (puzzle_solved) {
+			lines.draw_text("You Win!",
+			glm::vec3(-aspect + 0.1f * H + 1.7f, -1.0 + 0.5f + 0.1f * H + 1.0f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0x00, 0xff));
+		}
 	}
 	GL_ERRORS();
 }
