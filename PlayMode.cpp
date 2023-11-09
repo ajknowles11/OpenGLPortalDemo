@@ -366,6 +366,40 @@ void PlayMode::update(float elapsed) {
 }
 
 void PlayMode::handle_portals() {
+
+	// selectively disable start rm portals
+	portals["Portal-l1-1"]->active = player.transform->position.x >= 1.3f;
+	portals["Portal-l1-4"]->active = player.transform->position.y >= 1.3f;
+	portals["Portal-l1-2"]->active = player.transform->position.x <= -1.3f;
+	portals["Portal-l1-3"]->active = player.transform->position.y <= -1.3f;
+
+	if (player.transform->position.z < -40) {
+		portals["Portal3"]->active = true;
+		portals["Portal4"]->active = true;
+	}
+	else {
+		portals["Portal3"]->active = false;
+		portals["Portal4"]->active = false;
+	}
+
+	if (player.transform->position.z < -30) {
+		portals["Portal1"]->active = true;
+		portals["Portal2"]->active = true;
+	}
+	else {
+		portals["Portal1"]->active = false;
+		portals["Portal2"]->active = false;
+	}
+
+	if (player.transform->position.z < -22) {
+		portals["Portal0"]->active = true;
+		portals["Portal5"]->active = true;
+	}
+	else {
+		portals["Portal0"]->active = false;
+		portals["Portal5"]->active = false;
+	}
+
 	
 	auto point_in_box = [](glm::vec3 x, glm::vec3 min, glm::vec3 max){
 		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
@@ -374,6 +408,7 @@ void PlayMode::handle_portals() {
 	for (auto const &pair : portals) {
 		Portal *p = pair.second;
 		if (p->twin == nullptr) continue;
+		if (!p->active) continue;
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 
 		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
@@ -390,7 +425,7 @@ void PlayMode::handle_portals() {
 		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
-			std::cout << p->drawable->transform->name << "\n";
+			//std::cout << p->drawable->transform->name << "\n";
 			//std::cout << "teleported" << "\n";
 
 			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
@@ -409,7 +444,8 @@ void PlayMode::handle_portals() {
 				p->twin->twin = p;
 			}
 			else if (p->drawable->transform->name == "Portal0" || p->drawable->transform->name == "Portal5") {
-				portals["Portal-l3-1"]->drawable->transform->position = glm::vec3(100.0f);
+				portals["Portal-l3-1"]->active = false;
+				last_hint_opened = true;
 			}
 		}
 	}
@@ -418,9 +454,11 @@ void PlayMode::handle_portals() {
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
 void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, glm::vec4 clip_plane, GLint max_depth, GLint current_depth) {
+
 	for (auto &pair : portals) {
 		Portal *p = pair.second;
 		if (p->twin == nullptr) continue;
+		if (!p->active) continue;
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glDepthMask(GL_FALSE);
@@ -528,6 +566,7 @@ void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, gl
 	// Draw portals into depth buffer
 	for (auto &p : portals) {
 		if (p.second->twin == nullptr) continue;
+		if (!p.second->active) continue;
 		scene.draw_one(*p.second->drawable, view_mat, glm::mat4x3(1.0f), true, p.second->get_self_clip_plane(player.camera->transform->position));
 	}
 

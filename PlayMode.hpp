@@ -58,7 +58,7 @@ struct PlayMode : Mode {
 		bool player_in_front = false;
 		bool sleeping = false;
 
-		bool active = false;
+		bool active = true;
 		std::string on_walkmesh;
 
 		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
@@ -70,4 +70,6 @@ struct PlayMode : Mode {
 	WalkMesh const *walkmesh = nullptr;
 
 	std::unordered_map<std::string, Portal*> portals;
+
+	bool last_hint_opened = false;
 };
