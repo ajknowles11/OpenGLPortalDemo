@@ -390,7 +390,7 @@ void PlayMode::handle_portals() {
 		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
-			std::cout << p->drawable->transform->name << "\n";
+			//std::cout << p->drawable->transform->name << "\n";
 			//std::cout << "teleported" << "\n";
 
 			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
@@ -402,6 +402,11 @@ void PlayMode::handle_portals() {
 			walkmesh = walkmesh_map[p->twin->on_walkmesh];
 			if (walkmesh != nullptr) {
 				player.at = walkmesh->nearest_walk_point(player.transform->position);
+			}
+
+
+			if (p->twin->drawable->transform->name == "Portal-l2-1") {
+				p->twin->twin = p;
 			}
 		}
 	}
