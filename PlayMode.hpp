@@ -27,7 +27,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, up, space;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
@@ -66,6 +66,18 @@ struct PlayMode : Mode {
 		glm::vec4 get_self_clip_plane();
 	};
 
+	struct Boundingbox {
+		glm::vec3 min = glm::vec3(0.0f);
+		glm::vec3 max = glm::vec3(0.0f);
+	};
+
+	struct Ray {
+		glm::vec3 point = glm::vec3(0.0f);
+		glm::vec3 dir = glm::vec3(0.0f);
+	};
+
+	bool hit(Ray, Boundingbox);
+
 	Scene::Transform *debug_sphere = nullptr;
 
 	std::vector<Portal*> portals;
@@ -77,6 +89,8 @@ struct PlayMode : Mode {
 	int button_index = 0;
 
 	bool puzzle_solved = false;
+
+
 
 	void CheckPuzzle(std::string button_name);
 	void ResetAllButtons();
