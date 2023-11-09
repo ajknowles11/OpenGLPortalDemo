@@ -249,7 +249,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 				evt.motion.xrel / float(window_size.y),
 				-evt.motion.yrel / float(window_size.y)
 			);
-			glm::vec3 upDir = player.uses_walkmesh ? walkmesh->to_world_smooth_normal(player.at) : player.transform->make_local_to_world() * glm::vec4(0,0,1,0);
+			glm::vec3 upDir = player.transform->make_local_to_world() * glm::vec4(0,0,1,0);
 			player.transform->rotation = glm::angleAxis(-motion.x * player.camera->fovy, upDir) * player.transform->rotation;
 
 			float pitch = glm::pitch(player.camera->transform->rotation);
@@ -334,14 +334,14 @@ void PlayMode::update(float elapsed) {
 		//update player's position to respect walking:
 		player.transform->position = walkmesh->to_world_point(player.at);
 
-		{ //update player's rotation to respect local (smooth) up-vector:
+		// { //update player's rotation to respect local (smooth) up-vector:
 			
-			glm::quat adjust = glm::rotation(
-				player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), //current up vector
-				walkmesh->to_world_smooth_normal(player.at) //smoothed up vector at walk location
-			);
-			player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
-		}
+		// 	glm::quat adjust = glm::rotation(
+		// 		player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), //current up vector
+		// 		walkmesh->to_world_smooth_normal(player.at) //smoothed up vector at walk location
+		// 	);
+		// 	player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
+		// }
 
 		/*
 		glm::mat4x3 frame = camera->transform->make_local_to_parent();
@@ -377,7 +377,7 @@ void PlayMode::handle_portals() {
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 
 		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
-		bool now_in_front = 0 <= glm::dot(offset_from_portal, glm::normalize(glm::vec3(p_world[1])));
+		bool now_in_front = 0 < glm::dot(offset_from_portal, glm::normalize(glm::vec3(p_world[1])));
 		if (now_in_front == p->player_in_front) {
 			p->sleeping = false;
 			continue;
@@ -390,6 +390,7 @@ void PlayMode::handle_portals() {
 		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
+			std::cout << p->drawable->transform->name << "\n";
 			//std::cout << "teleported" << "\n";
 
 			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
@@ -569,7 +570,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glm::mat4x3 const player_cam_world = player.camera->transform->make_local_to_world();
 
 	draw_recursive_portals(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()), player.camera->transform->position, glm::vec4(-player_cam_world[2],
-			 -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 2, 0);
+			 -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 0, 0);
 
 	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{

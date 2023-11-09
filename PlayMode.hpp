@@ -44,7 +44,7 @@ struct PlayMode : Mode {
 
 	struct Portal {
 		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_) : Portal(drawable_, box_, on_walkmesh_, nullptr) {}
-		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_, Portal *twin_) : drawable(drawable_), box(box_), on_walkmesh(on_walkmesh_), twin(twin_) {
+		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_, Portal *twin_) : drawable(drawable_), box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), on_walkmesh(on_walkmesh_), twin(twin_) {
 			if (twin != nullptr) twin->twin = this;
 		}
 		~Portal() {
