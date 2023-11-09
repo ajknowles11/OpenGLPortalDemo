@@ -130,65 +130,65 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 			portals["Portal-l1-4"]->twin = new_portal;
 		}
 
-		// else if (drawable.transform->name == "Portal-l2-2") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l2-2");
-		// 	auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2");
-		// 	portals.emplace("Portal-l2-2", new_portal);
-		// }
-		// else if (drawable.transform->name == "Portal-l2-3") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l2-3");
-		// 	auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-2");
-		// 	portals.emplace("Portal-l2-3", new_portal);
-		// 	portals["Portal-l2-2"]->twin = new_portal;
-		// }
-		// else if (drawable.transform->name == "Portal-l2-4") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l2-4");
-		// 	auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-2");
-		// 	portals.emplace("Portal-l2-4", new_portal);
-		// 	new_portal->twin = portals["Portal-l2-3"];
-		// }
-		// else if (drawable.transform->name == "Portal-l2-5") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l2-5");
-		// 	auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-3", portals["Portal-l2-3"]);
-		// 	portals.emplace("Portal-l2-5", new_portal);
-		// }
-		// else if (drawable.transform->name == "Portal-l2-6") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l2-6");
-		// 	auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-3");
-		// 	portals.emplace("Portal-l2-6", new_portal);
-		// }
+		else if (drawable.transform->name == "Portal-l2-2") {
+			auto mesh = basic_meshes->lookup("Portal-l2-2");
+			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2");
+			portals.emplace("Portal-l2-2", new_portal);
+		}
+		else if (drawable.transform->name == "Portal-l2-3") {
+			auto mesh = basic_meshes->lookup("Portal-l2-3");
+			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-2");
+			portals.emplace("Portal-l2-3", new_portal);
+			portals["Portal-l2-2"]->twin = new_portal;
+		}
+		else if (drawable.transform->name == "Portal-l2-4") {
+			auto mesh = basic_meshes->lookup("Portal-l2-4");
+			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-2");
+			portals.emplace("Portal-l2-4", new_portal);
+			new_portal->twin = portals["Portal-l2-3"];
+		}
+		else if (drawable.transform->name == "Portal-l2-5") {
+			auto mesh = basic_meshes->lookup("Portal-l2-5");
+			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-3", portals["Portal-l2-3"]);
+			portals.emplace("Portal-l2-5", new_portal);
+		}
+		else if (drawable.transform->name == "Portal-l2-6") {
+			auto mesh = basic_meshes->lookup("Portal-l2-6");
+			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-3");
+			portals.emplace("Portal-l2-6", new_portal);
+		}
 
-	// 	// Six rooms
-	// 	else if (drawable.transform->name == "Portal-l3-1") {
-	// 		auto mesh = basic_meshes->lookup("Portal-l3-1");
-	// 		auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1", portals["Portal-l2-6"]);
-	// 		portals.emplace("Portal-l3-1", new_portal);
-	// 	}
+		// Six rooms
+		else if (drawable.transform->name == "Portal-l3-1") {
+			auto mesh = basic_meshes->lookup("Portal-l3-1");
+			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1", portals["Portal-l2-6"]);
+			portals.emplace("Portal-l3-1", new_portal);
+		}
 
-	// 	else if (drawable.transform->name == "Portal0") {
-	// 		auto mesh = basic_meshes->lookup("Portal0");
-	// 		portals.emplace("Portal0", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1"));
-	// 	}
-	// 	else if (drawable.transform->name == "Portal1") {
-	// 		auto mesh = basic_meshes->lookup("Portal1");
-	// 		portals.emplace("Portal1", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f2", portals["Portal0"]));
-	// 	}
-	// 	else if (drawable.transform->name == "Portal2") {
-	// 		auto mesh = basic_meshes->lookup("Portal2");
-	// 		portals.emplace("Portal2", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f2"));
-	// 	}
-	// 	else if (drawable.transform->name == "Portal3") {
-	// 		auto mesh = basic_meshes->lookup("Portal3");
-	// 		portals.emplace("Portal3", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f3", portals["Portal2"]));
-	// 	}
-	// 	else if (drawable.transform->name == "Portal4") {
-	// 		auto mesh = basic_meshes->lookup("Portal4");
-	// 		portals.emplace("Portal4", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f3"));
-	// 	}
-	// 	else if (drawable.transform->name == "Portal5") {
-	// 		auto mesh = basic_meshes->lookup("Portal5");
-	// 		portals.emplace("Portal5", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1", portals["Portal4"]));
-	// 	}
+		else if (drawable.transform->name == "Portal0") {
+			auto mesh = basic_meshes->lookup("Portal0");
+			portals.emplace("Portal0", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1"));
+		}
+		else if (drawable.transform->name == "Portal1") {
+			auto mesh = basic_meshes->lookup("Portal1");
+			portals.emplace("Portal1", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f2", portals["Portal0"]));
+		}
+		else if (drawable.transform->name == "Portal2") {
+			auto mesh = basic_meshes->lookup("Portal2");
+			portals.emplace("Portal2", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f2"));
+		}
+		else if (drawable.transform->name == "Portal3") {
+			auto mesh = basic_meshes->lookup("Portal3");
+			portals.emplace("Portal3", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f3", portals["Portal2"]));
+		}
+		else if (drawable.transform->name == "Portal5") {
+			auto mesh = basic_meshes->lookup("Portal5");
+			portals.emplace("Portal5", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1"));
+		}
+		else if (drawable.transform->name == "Portal4") {
+			auto mesh = basic_meshes->lookup("Portal4");
+			portals.emplace("Portal4", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f3", portals["Portal5"]));
+		}
 	}
 
 }
@@ -390,7 +390,7 @@ void PlayMode::handle_portals() {
 		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
-			//std::cout << p->drawable->transform->name << "\n";
+			std::cout << p->drawable->transform->name << "\n";
 			//std::cout << "teleported" << "\n";
 
 			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
@@ -407,6 +407,9 @@ void PlayMode::handle_portals() {
 
 			if (p->twin->drawable->transform->name == "Portal-l2-1") {
 				p->twin->twin = p;
+			}
+			else if (p->drawable->transform->name == "Portal0" || p->drawable->transform->name == "Portal5") {
+				portals["Portal-l3-1"]->drawable->transform->position = glm::vec3(100.0f);
 			}
 		}
 	}
