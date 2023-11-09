@@ -27,7 +27,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, up, space;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
@@ -69,6 +69,18 @@ struct PlayMode : Mode {
 
 	WalkMesh const *walkmesh = nullptr;
 
+	std::vector<std::pair<Scene::Transform*, bool>> buttons;
+
+	std::string code[4] = {"blu", "yel", "gre", "pur"};
+
+	int button_index = 0;
+
+	bool puzzle_solved = false;
+
+
+
+	void CheckPuzzle(std::string button_name);
+	void ResetAllButtons();
 	std::unordered_map<std::string, Portal*> portals;
 
 	bool last_hint_opened = false;

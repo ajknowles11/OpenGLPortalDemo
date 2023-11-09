@@ -5,6 +5,7 @@
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
 #include "Load.hpp"
+#include "Sound.hpp"
 #include "gl_errors.hpp"
 #include "data_path.hpp"
 
@@ -19,7 +20,12 @@ Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
-
+Load< Sound::Sample > correct_choice(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("correct-choice.wav"));
+});
+Load< Sound::Sample > wrong_choice(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("wrong-choice.wav"));
+});
 Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("sixrooms.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
@@ -191,6 +197,14 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 		}
 	}
 
+	//Find Buttons
+	for (auto &transform : scene.transforms) {
+		if (transform.name.rfind("b_") == 0) {
+			//std::cout << "Found button: " << transform.name << "\n";
+			buttons.emplace_back(std::make_pair(&transform, true));
+		}
+	}
+
 }
 
 PlayMode::~PlayMode() {
@@ -223,6 +237,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.downs += 1;
 			down.pressed = true;
 			return true;
+		} else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.downs += 1;
+			space.pressed = true;
+			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
@@ -236,6 +254,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			down.pressed = false;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_SPACE) {
+			space.pressed = false;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
@@ -264,6 +285,42 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	}
 
 	return false;
+}
+
+bool PlayMode::hit(Ray ray, Boundingbox box) {
+	glm::vec3 invdir;
+	//taking some care so that we don't end up with NaN's , just a degenerate matrix, if scale is zero:
+	invdir.x = (ray.dir.x == 0.0f ? 0.0f : 1.0f / ray.dir.x);
+	invdir.y = (ray.dir.y == 0.0f ? 0.0f : 1.0f / ray.dir.y);
+	invdir.z = (ray.dir.z == 0.0f ? 0.0f : 1.0f / ray.dir.z);
+
+	float tmin, tmax, tymin, tymax, tzmin, tzmax;
+	bool sign[3] = {invdir.x < 0, invdir.y < 0, invdir.z < 0};
+	glm::vec3 bounds[2] = {box.min, box.max};
+
+	tmin = (bounds[sign[0]].x - ray.point.x) * invdir.x;
+	tmax = (bounds[1 - sign[0]].x - ray.point.x) * invdir.x;
+	tymin = (bounds[sign[1]].y - ray.point.y) * invdir.y;
+	tymax = (bounds[1 - sign[1]].y - ray.point.y) * invdir.y;
+
+	if ((tmin > tymax) || (tymin > tmax)) return false;
+
+	if (tymin > tmin)
+		tmin = tymin;
+	if (tymax < tmax)
+		tmax = tymax;
+
+	tzmin = (bounds[sign[2]].z - ray.point.z) * invdir.z;
+	tzmax = (bounds[1 - sign[2]].z - ray.point.z) * invdir.z;
+
+	if ((tmin > tzmax) || (tzmin > tmax)) return false;
+
+	if (tzmin > tmin)
+		tmin = tzmin;
+	if (tzmax < tmax)
+		tmax = tzmax;
+
+	return true;
 }
 
 void PlayMode::update(float elapsed) {
@@ -356,13 +413,66 @@ void PlayMode::update(float elapsed) {
 		player.transform->position += remain;
 	}
 
+	//check if button is pressed
+	if (space.pressed) {
+		for (auto &button : buttons) {
+			//  this method will only work if the button posistion is global world position
+			// Ray ray;
+			// ray.point = player.camera->transform->position;
+			// ray.dir = player.transform->rotation * glm::vec3(0.0f, 0.0f, -1.0f);
+			// // generate bounding box for button, using button.first->position, radius 0.5f
+			// Boundingbox button_box;
+			// button_box.min = button.first->position - glm::vec3(0.5f);
+			// button_box.max = button.first->position + glm::vec3(0.5f);
+			// if (hit(ray, button_box) && button.second) {
+			if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second) {
+				button.first->position.z -= 0.2f;
+				button.second = false;
+				CheckPuzzle(button.first->name.substr(2, 3));
+			}
+		}
+	}
+	
+
+
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+	space.downs = 0;
 
 	handle_portals();
+}
+
+
+
+void PlayMode::CheckPuzzle(std::string button_name) {
+	if (button_name == code[button_index]) {
+		// play correct sound
+		Sound::play(*correct_choice, 1.0f, 0.0f);
+		button_index++;
+	}
+	else {
+		// play wrong sound
+		Sound::play(*wrong_choice, 1.0f, 0.0f);
+		ResetAllButtons();
+		return;
+	}
+	if (button_index >= 4) {
+		puzzle_solved = true;
+		std::cout << "You Win!" << "\n";
+	}
+	//ResetAllButtons();
+}
+
+void PlayMode::ResetAllButtons(){
+	for (auto &button : buttons) {
+		if(!button.second)
+			button.first->position.z += 0.2f;
+		button.second = true;
+	}
+	button_index = 0;
 }
 
 void PlayMode::handle_portals() {
@@ -642,15 +752,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse; SPACE to press button",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse; SPACE to press button",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		
+		if (puzzle_solved) {
+			lines.draw_text("You Win!",
+			glm::vec3(-aspect + 0.1f * H + 1.7f, -1.0 + 0.5f + 0.1f * H + 1.0f, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0x00, 0xff));
+		}
 	}
 	GL_ERRORS();
 }
