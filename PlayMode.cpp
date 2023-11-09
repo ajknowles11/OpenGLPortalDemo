@@ -477,7 +477,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glm::mat4x3 const player_cam_world = player.camera->transform->make_local_to_world();
 
 	draw_recursive_portals(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()), glm::vec4(-player_cam_world[2],
-			 -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 4, 0);
+			 -glm::dot(player_cam_world * glm::vec4(0,0,0,1), -player_cam_world[2])), 2, 0);
 
 	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{
