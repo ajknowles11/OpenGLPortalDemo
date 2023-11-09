@@ -34,7 +34,7 @@ struct PlayMode : Mode {
 
 	//player info:
 	struct Player {
-		bool uses_walkmesh = false;
+		bool uses_walkmesh = true;
 		WalkPoint at;
 		//transform is at player's feet and will be yawed by mouse left/right motion:
 		Scene::Transform *transform = nullptr;

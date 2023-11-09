@@ -38,11 +38,11 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 WalkMesh const *walkmesh = nullptr;
-// Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-// 	WalkMeshes *ret = new WalkMeshes(data_path("phone-bank.w"));
-// 	walkmesh = &ret->lookup("WalkMesh");
-// 	return ret;
-// });
+Load< WalkMeshes > walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
+	WalkMeshes *ret = new WalkMeshes(data_path("basic_portals.w"));
+	walkmesh = &ret->lookup("Walkmesh");
+	return ret;
+});
 
 PlayMode::PlayMode() : scene(*basic_scene) {
 	//create a player transform:
@@ -314,6 +314,10 @@ void PlayMode::handle_portals() {
 			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
 			p->twin->sleeping = true;
+
+			if (walkmesh != nullptr) {
+				player.at = walkmesh->nearest_walk_point(player.transform->position);
+			}
 		}
 	}
 }
