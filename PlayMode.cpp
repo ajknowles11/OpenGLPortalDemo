@@ -16,18 +16,13 @@
 
 GLuint basic_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("sixrooms.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("basic_portals.pnct"));
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
-Load< Sound::Sample > correct_choice(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("correct-choice.wav"));
-});
-Load< Sound::Sample > wrong_choice(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("wrong-choice.wav"));
-});
+
 Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("sixrooms.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("basic_portals.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -40,11 +35,45 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
 
+	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, Scene::Transform *dest_transform){
+		Mesh const &mesh = basic_meshes->lookup(mesh_name);
+
+		Scene::Drawable *drawable = new Scene::Drawable(transform);
+
+		drawable->pipeline = lit_color_texture_program_pipeline;
+
+		drawable->pipeline.vao = basic_meshes_for_lit_color_texture_program;
+		drawable->pipeline.type = mesh.type;
+		drawable->pipeline.start = mesh.start;
+		drawable->pipeline.count = mesh.count;
+
+		//why transform name and not mesh name? well the portal data addon in blender uses transform to point to destination.
+		//so when we link portals up here, we need to make sure we can index using the dest transform's name (not mesh name).
+		//We should probably make these the same anyway just because it's nicer.
+		Scene::Portal *&portal = scene.portals[transform->name];
+		Scene::Portal *&dest = scene.portals[dest_transform->name];
+
+		//dest portal may have already been created in the scene. if not we make a temp one now (keep its pointer value the same later)
+		if (dest == nullptr) { //not already created
+			dest = new Scene::Portal();
+		}
+		//now we can assign it when we create this portal
+
+		///!!!! DO THIS IN A WAY THAT ACTUALLY WORKS IN PRACTICE!!!!
+
+		//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
+		if (portal == nullptr) { //not already created
+			portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+		}
+		else { //already created (don't change pointer, just value pointed to)
+			*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+		}
+
 	});
 });
 
 Load< WalkMeshes > walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("sixrooms.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("basic_portals.w"));
 	return ret;
 });
 
@@ -71,13 +100,7 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 
 	//gather walkmeshes
 	{
-		walkmesh_map.emplace("L1", &walkmeshes->lookup("WalkMesh-L1"));
-		walkmesh_map.emplace("L2", &walkmeshes->lookup("WalkMesh-L2"));
-		walkmesh_map.emplace("L2-2", &walkmeshes->lookup("WalkMesh-L2-2"));
-		walkmesh_map.emplace("L2-3", &walkmeshes->lookup("WalkMesh-L2-3"));
-		walkmesh_map.emplace("L3-f1", &walkmeshes->lookup("WalkMesh-L3-f1"));
-		walkmesh_map.emplace("L3-f2", &walkmeshes->lookup("WalkMesh-L3-f2"));
-		walkmesh_map.emplace("L3-f3", &walkmeshes->lookup("WalkMesh-L3-f2.001"));
+		walkmesh_map.emplace("L1", &walkmeshes->lookup("Walkmesh"));
 	}
 
 	walkmesh = walkmesh_map["L1"];
@@ -87,128 +110,10 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
-	//set up portals. gotta put this in the asset pipeline or something haha
-	for (auto &drawable : scene.drawables) {
-
-		// phonebox portals
-		if (drawable.transform->name == "Portal-l1-1") {
-			auto mesh = basic_meshes->lookup("Portal-l1-1");
-			portals.emplace("Portal-l1-1", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1"));
-		}
-		else if (drawable.transform->name == "Portal-l1-2") {
-			auto mesh = basic_meshes->lookup("Portal-l1-2");
-			portals.emplace("Portal-l1-2", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1"));
-		}
-		else if (drawable.transform->name == "Portal-l1-3") {
-			auto mesh = basic_meshes->lookup("Portal-l1-3");
-			portals.emplace("Portal-l1-3", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1"));
-		}
-		else if (drawable.transform->name == "Portal-l1-4") {
-			auto mesh = basic_meshes->lookup("Portal-l1-4");
-			portals.emplace("Portal-l1-4", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1"));
-		}
-
-		// // "infinite" plane portals (lvl1)
-		// else if (drawable.transform->name == "Portal-l1-5") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l1-5");
-		// 	portals.emplace("Portal-l1-5", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1"));
-		// }
-		// else if (drawable.transform->name == "Portal-l1-6") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l1-6");
-		// 	portals.emplace("Portal-l1-6", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", portals["Portal-l1-5"]));
-		// }
-		// else if (drawable.transform->name == "Portal-l1-7") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l1-7");
-		// 	portals.emplace("Portal-l1-7", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1"));
-		// }
-		// else if (drawable.transform->name == "Portal-l1-8") {
-		// 	auto mesh = basic_meshes->lookup("Portal-l1-8");
-		// 	portals.emplace("Portal-l1-8", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", portals["Portal-l1-7"]));
-		// }
-
-		// staircase
-		else if (drawable.transform->name == "Portal-l2-1") {
-			auto mesh = basic_meshes->lookup("Portal-l2-1");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2", portals["Portal-l1-1"]);
-			portals.emplace("Portal-l2-1", new_portal);
-			portals["Portal-l1-2"]->twin = new_portal;
-			portals["Portal-l1-3"]->twin = new_portal;
-			portals["Portal-l1-4"]->twin = new_portal;
-		}
-
-		else if (drawable.transform->name == "Portal-l2-2") {
-			auto mesh = basic_meshes->lookup("Portal-l2-2");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2");
-			portals.emplace("Portal-l2-2", new_portal);
-		}
-		else if (drawable.transform->name == "Portal-l2-3") {
-			auto mesh = basic_meshes->lookup("Portal-l2-3");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-2");
-			portals.emplace("Portal-l2-3", new_portal);
-			portals["Portal-l2-2"]->twin = new_portal;
-		}
-		else if (drawable.transform->name == "Portal-l2-4") {
-			auto mesh = basic_meshes->lookup("Portal-l2-4");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-2");
-			portals.emplace("Portal-l2-4", new_portal);
-			new_portal->twin = portals["Portal-l2-3"];
-		}
-		else if (drawable.transform->name == "Portal-l2-5") {
-			auto mesh = basic_meshes->lookup("Portal-l2-5");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-3", portals["Portal-l2-3"]);
-			portals.emplace("Portal-l2-5", new_portal);
-		}
-		else if (drawable.transform->name == "Portal-l2-6") {
-			auto mesh = basic_meshes->lookup("Portal-l2-6");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L2-3");
-			portals.emplace("Portal-l2-6", new_portal);
-		}
-
-		// Six rooms
-		else if (drawable.transform->name == "Portal-l3-1") {
-			auto mesh = basic_meshes->lookup("Portal-l3-1");
-			auto const &new_portal = new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1", portals["Portal-l2-6"]);
-			portals.emplace("Portal-l3-1", new_portal);
-		}
-
-		else if (drawable.transform->name == "Portal0") {
-			auto mesh = basic_meshes->lookup("Portal0");
-			portals.emplace("Portal0", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1"));
-		}
-		else if (drawable.transform->name == "Portal1") {
-			auto mesh = basic_meshes->lookup("Portal1");
-			portals.emplace("Portal1", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f2", portals["Portal0"]));
-		}
-		else if (drawable.transform->name == "Portal2") {
-			auto mesh = basic_meshes->lookup("Portal2");
-			portals.emplace("Portal2", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f2"));
-		}
-		else if (drawable.transform->name == "Portal3") {
-			auto mesh = basic_meshes->lookup("Portal3");
-			portals.emplace("Portal3", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f3", portals["Portal2"]));
-		}
-		else if (drawable.transform->name == "Portal5") {
-			auto mesh = basic_meshes->lookup("Portal5");
-			portals.emplace("Portal5", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f1"));
-		}
-		else if (drawable.transform->name == "Portal4") {
-			auto mesh = basic_meshes->lookup("Portal4");
-			portals.emplace("Portal4", new Portal(&drawable, Scene::BoxCollider(mesh.min, mesh.max), "L3-f3", portals["Portal5"]));
-		}
-	}
-
-	//Find Buttons
-	for (auto &transform : scene.transforms) {
-		if (transform.name.rfind("b_") == 0) {
-			//std::cout << "Found button: " << transform.name << "\n";
-			buttons.emplace_back(std::make_pair(&transform, true));
-		}
-	}
-
 }
 
 PlayMode::~PlayMode() {
-	for (auto p : portals) {
+	for (auto p : scene.portals) {
 		if (p.second != nullptr) {
 			delete p.second;
 		}
@@ -285,42 +190,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	}
 
 	return false;
-}
-
-bool PlayMode::hit(Ray ray, Boundingbox box) {
-	glm::vec3 invdir;
-	//taking some care so that we don't end up with NaN's , just a degenerate matrix, if scale is zero:
-	invdir.x = (ray.dir.x == 0.0f ? 0.0f : 1.0f / ray.dir.x);
-	invdir.y = (ray.dir.y == 0.0f ? 0.0f : 1.0f / ray.dir.y);
-	invdir.z = (ray.dir.z == 0.0f ? 0.0f : 1.0f / ray.dir.z);
-
-	float tmin, tmax, tymin, tymax, tzmin, tzmax;
-	bool sign[3] = {invdir.x < 0, invdir.y < 0, invdir.z < 0};
-	glm::vec3 bounds[2] = {box.min, box.max};
-
-	tmin = (bounds[sign[0]].x - ray.point.x) * invdir.x;
-	tmax = (bounds[1 - sign[0]].x - ray.point.x) * invdir.x;
-	tymin = (bounds[sign[1]].y - ray.point.y) * invdir.y;
-	tymax = (bounds[1 - sign[1]].y - ray.point.y) * invdir.y;
-
-	if ((tmin > tymax) || (tymin > tmax)) return false;
-
-	if (tymin > tmin)
-		tmin = tymin;
-	if (tymax < tmax)
-		tmax = tymax;
-
-	tzmin = (bounds[sign[2]].z - ray.point.z) * invdir.z;
-	tzmax = (bounds[1 - sign[2]].z - ray.point.z) * invdir.z;
-
-	if ((tmin > tzmax) || (tzmin > tmax)) return false;
-
-	if (tzmin > tmin)
-		tmin = tzmin;
-	if (tzmax < tmax)
-		tmax = tzmax;
-
-	return true;
 }
 
 void PlayMode::update(float elapsed) {
@@ -412,29 +281,7 @@ void PlayMode::update(float elapsed) {
 	else {
 		player.transform->position += remain;
 	}
-
-	//check if button is pressed
-	if (space.pressed) {
-		for (auto &button : buttons) {
-			//  this method will only work if the button posistion is global world position
-			// Ray ray;
-			// ray.point = player.camera->transform->position;
-			// ray.dir = player.transform->rotation * glm::vec3(0.0f, 0.0f, -1.0f);
-			// // generate bounding box for button, using button.first->position, radius 0.5f
-			// Boundingbox button_box;
-			// button_box.min = button.first->position - glm::vec3(0.5f);
-			// button_box.max = button.first->position + glm::vec3(0.5f);
-			// if (hit(ray, button_box) && button.second) {
-			if (glm::distance(player.transform->position, button.first->position) < 1.5f && button.second) {
-				button.first->position.z -= 0.2f;
-				button.second = false;
-				CheckPuzzle(button.first->name.substr(2, 3));
-			}
-		}
-	}
 	
-
-
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
@@ -445,79 +292,15 @@ void PlayMode::update(float elapsed) {
 	handle_portals();
 }
 
-
-
-void PlayMode::CheckPuzzle(std::string button_name) {
-	if (button_name == code[button_index]) {
-		// play correct sound
-		Sound::play(*correct_choice, 1.0f, 0.0f);
-		button_index++;
-	}
-	else {
-		// play wrong sound
-		Sound::play(*wrong_choice, 1.0f, 0.0f);
-		ResetAllButtons();
-		return;
-	}
-	if (button_index >= 4) {
-		puzzle_solved = true;
-		std::cout << "You Win!" << "\n";
-	}
-	//ResetAllButtons();
-}
-
-void PlayMode::ResetAllButtons(){
-	for (auto &button : buttons) {
-		if(!button.second)
-			button.first->position.z += 0.2f;
-		button.second = true;
-	}
-	button_index = 0;
-}
-
 void PlayMode::handle_portals() {
 
-	// selectively disable start rm portals
-	portals["Portal-l1-1"]->active = player.transform->position.x >= 1.3f;
-	portals["Portal-l1-4"]->active = player.transform->position.y >= 1.3f;
-	portals["Portal-l1-2"]->active = player.transform->position.x <= -1.3f;
-	portals["Portal-l1-3"]->active = player.transform->position.y <= -1.3f;
-
-	if (player.transform->position.z < -40) {
-		portals["Portal3"]->active = true;
-		portals["Portal4"]->active = true;
-	}
-	else {
-		portals["Portal3"]->active = false;
-		portals["Portal4"]->active = false;
-	}
-
-	if (player.transform->position.z < -30) {
-		portals["Portal1"]->active = true;
-		portals["Portal2"]->active = true;
-	}
-	else {
-		portals["Portal1"]->active = false;
-		portals["Portal2"]->active = false;
-	}
-
-	if (player.transform->position.z < -22) {
-		portals["Portal0"]->active = true;
-		portals["Portal5"]->active = true;
-	}
-	else {
-		portals["Portal0"]->active = false;
-		portals["Portal5"]->active = false;
-	}
-
-	
 	auto point_in_box = [](glm::vec3 x, glm::vec3 min, glm::vec3 max){
 		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
 	};
 
-	for (auto const &pair : portals) {
-		Portal *p = pair.second;
-		if (p->twin == nullptr) continue;
+	for (auto const &pair : scene.portals) {
+		Scene::Portal *p = pair.second;
+		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 
@@ -535,28 +318,17 @@ void PlayMode::handle_portals() {
 		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
-			//std::cout << p->drawable->transform->name << "\n";
-			//std::cout << "teleported" << "\n";
 
-			glm::mat4 const m_reverse = glm::mat4(p->twin->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
+			glm::mat4 const m_reverse = glm::mat4(p->dest->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
 
 			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
-			p->twin->sleeping = true;
+			p->dest->sleeping = true;
 
-			walkmesh = walkmesh_map[p->twin->on_walkmesh];
-			if (walkmesh != nullptr) {
-				player.at = walkmesh->nearest_walk_point(player.transform->position);
-			}
-
-
-			if (p->twin->drawable->transform->name == "Portal-l2-1") {
-				p->twin->twin = p;
-			}
-			else if (p->drawable->transform->name == "Portal0" || p->drawable->transform->name == "Portal5") {
-				portals["Portal-l3-1"]->active = false;
-				last_hint_opened = true;
-			}
+			// walkmesh = walkmesh_map[p->dest->on_walkmesh];
+			// if (walkmesh != nullptr) {
+			// 	player.at = walkmesh->nearest_walk_point(player.transform->position);
+			// }
 		}
 	}
 }
@@ -565,9 +337,9 @@ void PlayMode::handle_portals() {
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
 void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, glm::vec4 clip_plane, GLint max_depth, GLint current_depth) {
 
-	for (auto &pair : portals) {
-		Portal *p = pair.second;
-		if (p->twin == nullptr) continue;
+	for (auto &pair : scene.portals) {
+		Scene::Portal *p = pair.second;
+		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -596,7 +368,7 @@ void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, gl
 
 
 		// Calculate new camera position as if player was already teleported
-		glm::mat4 const &new_view_mat = view_mat * glm::mat4(p->drawable->transform->make_local_to_world()) * glm::mat4(p->twin->drawable->transform->make_world_to_local());
+		glm::mat4 const &new_view_mat = view_mat * glm::mat4(p->drawable->transform->make_local_to_world()) * glm::mat4(p->dest->drawable->transform->make_world_to_local());
 
 		// Base case, render inside of inner portal
 		if (current_depth == max_depth) {
@@ -625,13 +397,13 @@ void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, gl
 
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
-			scene.draw(new_view_mat, glm::mat4x3(1.0f), true, p->twin->get_clipping_plane(view_pos));
+			scene.draw(new_view_mat, glm::mat4x3(1.0f), true, p->dest->get_clipping_plane(view_pos));
 		}
 		else
 		{
 			// Recursion case
 			// Pass our new view matrix and the clipped projection matrix (see above)
-			draw_recursive_portals(new_view_mat, p->twin->drawable->transform->position, p->twin->get_clipping_plane(view_pos), max_depth, current_depth + 1);
+			draw_recursive_portals(new_view_mat, p->dest->drawable->transform->position, p->dest->get_clipping_plane(view_pos), max_depth, current_depth + 1);
 		}
 
 		// Disable color and depth drawing
@@ -674,8 +446,8 @@ void PlayMode::draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, gl
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	// Draw portals into depth buffer
-	for (auto &p : portals) {
-		if (p.second->twin == nullptr) continue;
+	for (auto &p : scene.portals) {
+		if (p.second->dest == nullptr) continue;
 		if (!p.second->active) continue;
 		scene.draw_one(*p.second->drawable, view_mat, glm::mat4x3(1.0f), true, p.second->get_self_clip_plane(player.camera->transform->position));
 	}
@@ -761,38 +533,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
-		
-		if (puzzle_solved) {
-			lines.draw_text("You Win!",
-			glm::vec3(-aspect + 0.1f * H + 1.7f, -1.0 + 0.5f + 0.1f * H + 1.0f, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0xff, 0xff, 0x00, 0xff));
-		}
 	}
 	GL_ERRORS();
-}
-
-// gets clipping plane used by portal's camera
-glm::vec4 PlayMode::Portal::get_clipping_plane(glm::vec3 view_pos) {
-	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
-	glm::vec3 p_forward = glm::normalize(p_world[1]);
-	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
-	glm::vec3 const camera_offset_from_portal = view_pos - p_origin;
-	if (glm::dot(p_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
-
-	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
-}
-
-// gets clipping plane used for portal mesh itself (stop flicker)
-glm::vec4 PlayMode::Portal::get_self_clip_plane(glm::vec3 view_pos) {
-	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
-	glm::mat4x3 const t_world = twin->drawable->transform->make_local_to_world();
-	glm::vec3 p_forward = glm::normalize(p_world[1]);
-	glm::vec3 t_forward = glm::normalize(t_world[1]);
-	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
-	glm::vec3 const t_origin = glm::vec3(t_world * glm::vec4(0,0,0,1));
-	glm::vec3 const camera_offset_from_portal = view_pos - t_origin;
-	if (glm::dot(t_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
-
-	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
 }

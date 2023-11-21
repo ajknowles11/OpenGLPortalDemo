@@ -126,11 +126,30 @@ struct Scene {
 		glm::vec3 max = glm::vec3(0);
 	};
 
+	struct Portal {
+		Portal() : active(false) {}
+		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_) : Portal(drawable_, box_, on_walkmesh_, nullptr) {}
+		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, Portal *dest_) : drawable(drawable_), box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), on_walkmesh(on_walkmesh_), dest(dest_) {}
+		~Portal() {}
+		Drawable *drawable = nullptr;
+		Portal *dest = nullptr;
+		BoxCollider box;
+		bool player_in_front = false;
+		bool sleeping = false;
+
+		bool active = true;
+		std::string on_walkmesh;
+
+		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
+		glm::vec4 get_self_clip_plane(glm::vec3 view_pos);
+	};
+
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::list< Drawable > drawables;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
+	std::unordered_map<std::string, Portal*> portals;
 
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
 	void draw(Camera const &camera, bool use_clip = false, glm::vec4 clip_plane = glm::vec4(0)) const;
@@ -146,7 +165,8 @@ struct Scene {
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
 	// throws on file format errors
 	void load(std::string const &filename,
-		std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable = nullptr
+		std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable = nullptr,
+		std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal = nullptr
 	);
 
 	//this function is called to read extra chunks from the scene file after the main chunks are read:
@@ -157,7 +177,8 @@ struct Scene {
 	Scene() = default;
 
 	//load a scene:
-	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable);
+	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
+		std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal);
 
 	//copy a scene (with proper pointer fixup):
 	Scene(Scene const &); //...as a constructor

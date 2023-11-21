@@ -79,6 +79,32 @@ glm::mat4 Scene::Camera::make_projection() const {
 
 //-------------------------
 
+// gets clipping plane used by portal's camera
+glm::vec4 Scene::Portal::get_clipping_plane(glm::vec3 view_pos) {
+	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
+	glm::vec3 p_forward = glm::normalize(p_world[1]);
+	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
+	glm::vec3 const camera_offset_from_portal = view_pos - p_origin;
+	if (glm::dot(p_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
+
+	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
+}
+
+// gets clipping plane used for portal mesh itself (stop flicker)
+glm::vec4 Scene::Portal::get_self_clip_plane(glm::vec3 view_pos) {
+	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
+	glm::mat4x3 const t_world = dest->drawable->transform->make_local_to_world();
+	glm::vec3 p_forward = glm::normalize(p_world[1]);
+	glm::vec3 t_forward = glm::normalize(t_world[1]);
+	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
+	glm::vec3 const t_origin = glm::vec3(t_world * glm::vec4(0,0,0,1));
+	glm::vec3 const camera_offset_from_portal = view_pos - t_origin;
+	if (glm::dot(t_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
+
+	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
+}
+
+//-------------------------
 
 void Scene::draw(Camera const &camera, bool use_clip, glm::vec4 clip_plane) const {
 	assert(camera.transform);
@@ -94,9 +120,6 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 	//Iterate through all drawables, sending each one to OpenGL:
 	for (auto const &drawable : drawables) {
-		if (drawable.transform->name.substr(0, 6) == "Portal") {
-			continue;
-		}
 		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
 	}
 
@@ -195,7 +218,8 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 
 
 void Scene::load(std::string const &filename,
-	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable) {
+	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
+	std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal) {
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -213,6 +237,16 @@ void Scene::load(std::string const &filename,
 	static_assert(sizeof(HierarchyEntry) == 4 + 4 + 4 + 4*3 + 4*4 + 4*3, "HierarchyEntry is packed.");
 	std::vector< HierarchyEntry > hierarchy;
 	read_chunk(file, "xfh0", &hierarchy);
+
+	struct PortalEntry {
+		uint32_t transform;
+		uint32_t name_begin;
+		uint32_t name_end;
+		uint32_t dest;
+	};
+	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4, "PortalEntry is packed.");
+	std::vector< PortalEntry > portal_meshes;
+	read_chunk(file, "prt0", &portal_meshes);
 
 	struct MeshEntry {
 		uint32_t transform;
@@ -275,6 +309,23 @@ void Scene::load(std::string const &filename,
 		hierarchy_transforms.emplace_back(t);
 	}
 	assert(hierarchy_transforms.size() == hierarchy.size());
+
+	for (auto const &p : portal_meshes) {
+		if (p.transform >= hierarchy_transforms.size()) {
+			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid transform index (" + std::to_string(p.transform) + ")");
+		}
+		if (!(p.name_begin <= p.name_end && p.name_end <= names.size())) {
+			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid name indices");
+		}
+		std::string name = std::string(names.begin() + p.name_begin, names.begin() + p.name_end);
+		if (p.dest >= hierarchy_transforms.size()) {
+			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid dest transform index (" + std::to_string(p.transform) + ")");
+		}
+
+		if (on_portal) {
+			on_portal(*this, hierarchy_transforms[p.transform], name, hierarchy_transforms[p.dest]);
+		}
+	}
 
 	for (auto const &m : meshes) {
 		if (m.transform >= hierarchy_transforms.size()) {
@@ -342,8 +393,9 @@ void Scene::load(std::string const &filename,
 
 //-------------------------
 
-Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable) {
-	load(filename, on_drawable);
+Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
+	std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal) {
+	load(filename, on_drawable, on_portal);
 }
 
 Scene::Scene(Scene const &other) {
@@ -387,8 +439,9 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 
 	//copy other's drawables, updating transform pointers:
 	drawables = other.drawables;
-	for (auto &d : drawables) {
-		d.transform = transform_to_transform.at(d.transform);
+	for (auto &d : other.drawables) {
+		drawables.emplace_back(transform_to_transform.at(d.transform));
+		drawables.back().pipeline = d.pipeline;
 	}
 
 	//copy other's cameras, updating transform pointers:
@@ -401,5 +454,11 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	lights = other.lights;
 	for (auto &l : lights) {
 		l.transform = transform_to_transform.at(l.transform);
+	}
+
+	//copy other's portals, updating drawable pointers:
+	portals = other.portals;
+	for (auto &p : portals) {
+		p.second->drawable->transform = transform_to_transform.at(p.second->drawable->transform);
 	}
 }

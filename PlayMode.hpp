@@ -42,46 +42,8 @@ struct PlayMode : Mode {
 		Scene::Camera *camera = nullptr;
 	} player;
 
-	struct Portal {
-		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_) : Portal(drawable_, box_, on_walkmesh_, nullptr) {}
-		Portal(Scene::Drawable *drawable_, Scene::BoxCollider box_, std::string on_walkmesh_, Portal *twin_) : drawable(drawable_), box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), on_walkmesh(on_walkmesh_), twin(twin_) {
-			if (twin != nullptr) twin->twin = this;
-		}
-		~Portal() {
-			if (twin != nullptr) {
-				twin->twin = nullptr;
-			}
-		}
-		Scene::Drawable const *drawable = nullptr;
-		Portal *twin = nullptr;
-		Scene::BoxCollider box;
-		bool player_in_front = false;
-		bool sleeping = false;
-
-		bool active = true;
-		std::string on_walkmesh;
-
-		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
-		glm::vec4 get_self_clip_plane(glm::vec3 view_pos);
-	};
-
 	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
 	WalkMesh const *walkmesh = nullptr;
 
-	std::vector<std::pair<Scene::Transform*, bool>> buttons;
-
-	std::string code[4] = {"blu", "yel", "gre", "pur"};
-
-	int button_index = 0;
-
-	bool puzzle_solved = false;
-
-
-
-	void CheckPuzzle(std::string button_name);
-	void ResetAllButtons();
-	std::unordered_map<std::string, Portal*> portals;
-
-	bool last_hint_opened = false;
 };

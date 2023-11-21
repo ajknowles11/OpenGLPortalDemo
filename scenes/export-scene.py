@@ -60,6 +60,7 @@ else:
 
 strings_data = b""
 xfh_data = b""
+portal_data = b""
 mesh_data = b""
 camera_data = b""
 lamp_data = b""
@@ -118,6 +119,15 @@ def write_xfh(obj):
 	xfh_data += struct.pack('3f', transform[2].x, transform[2].y, transform[2].z)
 
 	return ref
+
+#write_portal acts similarly to write_mesh, but handles portal linking and keeps portals out of scene.drawables:
+def write_portal(obj):
+    global portal_data
+    assert(obj.type == 'MESH' and obj.portal_data.is_portal)
+    portal_data += write_xfh(obj) #hierarchy reference
+    portal_data += write_string(obj.data.name) #mesh name
+    portal_data += write_xfh(obj.portal_data.dest)
+    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + " / " + obj.portal_data.dest.name)
 
 #write_mesh will add an object to the mesh section:
 def write_mesh(obj):
@@ -196,7 +206,10 @@ def write_objects(from_collection):
 		if tuple(instance_parents + [obj]) in written: continue
 		written.add(tuple(instance_parents + [obj]))
 		if obj.type == 'MESH':
-			write_mesh(obj)
+			if obj.portal_data.is_portal:
+				write_portal(obj)
+			else:
+				write_mesh(obj)
 		elif obj.type == 'CAMERA':
 			write_camera(obj)
 		elif obj.type == 'LIGHT':
@@ -222,6 +235,7 @@ def write_chunk(magic, data):
 
 write_chunk(b'str0', strings_data)
 write_chunk(b'xfh0', xfh_data)
+write_chunk(b'prt0', portal_data)
 write_chunk(b'msh0', mesh_data)
 write_chunk(b'cam0', camera_data)
 write_chunk(b'lmp0', lamp_data)
