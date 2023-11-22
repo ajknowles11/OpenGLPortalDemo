@@ -325,10 +325,10 @@ void PlayMode::handle_portals() {
 			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
 			p->dest->sleeping = true;
 
-			// walkmesh = walkmesh_map[p->dest->on_walkmesh];
-			// if (walkmesh != nullptr) {
-			// 	player.at = walkmesh->nearest_walk_point(player.transform->position);
-			// }
+			walkmesh = walkmesh_map[p->dest->on_walkmesh];
+			if (walkmesh != nullptr) {
+				player.at = walkmesh->nearest_walk_point(player.transform->position);
+			}
 		}
 	}
 }
@@ -356,6 +356,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glm::mat4x3 const player_cam_world = player.camera->transform->make_local_to_world();
 
 	scene.draw(*player.camera);
+	// glm::mat4x3 const cam_to_world = player.camera->transform->make_local_to_world();
+	// scene.draw_non_portals(player.camera->make_projection() * glm::mat4(player.camera->transform->make_world_to_local()), glm::mat4(1.0f), 
+	// 	glm::vec4(-cam_to_world[2], -glm::dot(cam_to_world * glm::vec4(0,0,0,1), -cam_to_world[2])));
 
 	/* In case you are wondering if your walkmesh is lining up with your scene, try:
 	{

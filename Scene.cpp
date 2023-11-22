@@ -73,6 +73,16 @@ glm::mat4x3 Scene::Transform::make_world_to_local() const {
 
 //-------------------------
 
+void Scene::Transform::make_global(Transform const &from) {
+	glm::mat4x3 const &from_to_world = from.make_local_to_world();
+
+	position = from_to_world[3];
+	scale = glm::vec3(glm::length(glm::vec3(from_to_world[0])), glm::length(glm::vec3(from_to_world[1])), glm::length(glm::vec3(from_to_world[2])));
+	rotation = glm::quat_cast(glm::mat3(glm::vec3(from_to_world[0]) / scale[0], glm::vec3(from_to_world[1]) / scale[1], glm::vec3(from_to_world[2]) / scale[2]));
+}
+
+//-------------------------
+
 glm::mat4 Scene::Camera::make_projection() const {
 	return glm::infinitePerspective( fovy, aspect, near );
 }
@@ -108,20 +118,22 @@ glm::vec4 Scene::Portal::get_self_clip_plane(glm::vec3 view_pos) {
 
 void Scene::draw(Camera const &camera) const {
 	assert(camera.transform);
-	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
-	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
 	glm::mat4x3 const cam_to_world = camera.transform->make_local_to_world();
 	glm::vec4 const clip_plane = glm::vec4(-cam_to_world[2], 
 		-glm::dot(cam_to_world * glm::vec4(0,0,0,1), -cam_to_world[2]));
-	draw(world_to_clip, world_to_light, clip_plane);
+	Transform cam_transform = Transform();
+	cam_transform.make_global(*camera.transform);
+
+	draw(camera.make_projection(), cam_transform, clip_plane);
 }
 
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
-void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 clip_plane, GLint max_recursion_lvl, GLint recursion_lvl) const {
+void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform, glm::vec4 const &clip_plane, GLint max_recursion_lvl, GLint recursion_lvl) const {
 	
-	// Calculate view position using view matrix (world_to_clip matrix)
-	glm::vec3 const &view_pos = glm::vec3(world_to_clip[3]);
+	//Calculate world_to_clip and world_to_light matrices for this case
+	glm::mat4 const &world_to_clip = cam_projection * glm::mat4(cam_transform.make_world_to_local());
+	static glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f);
 	
 	for (auto &pair : portals) {
 		Scene::Portal *p = pair.second;
@@ -150,11 +162,14 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 		glStencilMask(0xFF);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_self_clip_plane(view_pos));
+		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_self_clip_plane(cam_transform.position));
 
 
-		// Calculate new camera position as if player was already teleported
-		glm::mat4 const &new_view_mat = world_to_clip * glm::mat4(p->drawable->transform->make_local_to_world()) * glm::mat4(p->dest->drawable->transform->make_world_to_local());
+		// Calculate new camera transform as if player was already teleported
+		glm::mat4 const &portal_dest_mat = glm::mat4(p->dest->drawable->transform->make_local_to_world()) * glm::mat4(p->drawable->transform->make_world_to_local());
+		Transform const &new_cam_transform = Transform(portal_dest_mat * glm::vec4(cam_transform.position, 1), 
+			portal_dest_mat * glm::mat4(cam_transform.rotation), cam_transform.scale);
+		glm::mat4 const &new_world_to_clip = cam_projection * glm::mat4(new_cam_transform.make_world_to_local());
 
 		// Base case, render inside of inner portal
 		if (recursion_lvl == max_recursion_lvl) {
@@ -183,13 +198,13 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
-			draw_non_portals(new_view_mat, glm::mat4x3(1.0f), p->dest->get_clipping_plane(world_to_clip[0]));
+			draw_non_portals(new_world_to_clip, world_to_light, p->dest->get_clipping_plane(new_cam_transform.position));
 		}
 		else
 		{
 			// Recursion case
 			// Pass our new view matrix and the clipped projection matrix (see above)
-			draw(new_view_mat, glm::mat4x3(1.0f), p->dest->get_clipping_plane(view_pos), max_recursion_lvl, recursion_lvl + 1);
+			draw(cam_projection, new_cam_transform, p->dest->get_clipping_plane(new_cam_transform.position), max_recursion_lvl, recursion_lvl + 1);
 		}
 
 		// Disable color and depth drawing
@@ -211,7 +226,7 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_self_clip_plane(view_pos));
+		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_self_clip_plane(cam_transform.position));
 	}
 
 	// Disable the stencil test and stencil writing
@@ -232,10 +247,11 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	// Draw portals into depth buffer
-	for (auto &p : portals) {
-		if (p.second->dest == nullptr) continue;
-		if (!p.second->active) continue;
-		draw_one(*p.second->drawable, world_to_clip, glm::mat4x3(1.0f), p.second->get_self_clip_plane(view_pos));
+	for (auto &pair : portals) {
+		Portal *p = pair.second;
+		if (p->dest == nullptr) continue;
+		if (!p->active) continue;
+		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_self_clip_plane(cam_transform.position));
 	}
 
 	// Reset the depth function to the default
@@ -258,16 +274,16 @@ void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_lig
 	glEnable(GL_DEPTH_TEST);
 
 	// Draw scene objects normally, only at recursionLevel
-	draw_non_portals(world_to_clip, glm::mat4x3(1.0f), clip_plane);
+	draw_non_portals(world_to_clip, world_to_light, clip_plane);
 }
 
-void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 clip_plane) const {
+void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 const &clip_plane) const {
 	for (auto const &drawable : drawables) {
 		draw_one(drawable, world_to_clip, world_to_light, clip_plane);
 	}
 }
 
-void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 clip_plane) const {
+void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 const &clip_plane) const {
 	//Reference to drawable's pipeline for convenience:
 	Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
 
