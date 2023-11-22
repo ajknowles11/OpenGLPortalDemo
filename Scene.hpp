@@ -152,14 +152,24 @@ struct Scene {
 	std::unordered_map<std::string, Portal*> portals;
 
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
-	void draw(Camera const &camera, bool use_clip = false, glm::vec4 clip_plane = glm::vec4(0)) const;
+	void draw(Camera const &camera) const;
 
 	//..sometimes, you want to draw with a custom projection matrix and/or light space:
-	void draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), bool use_clip = false, glm::vec4 clip_plane = glm::vec4(0)) const;
+	void draw(glm::mat4 const &world_to_clip, 
+		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
+		glm::vec4 clip_plane = glm::vec4(0), 
+		GLint max_recursion_lvl = 0, 
+		GLint recursion_lvl = 0) const;
 
-	void draw_one(Drawable const &drawable, Camera const &camera, bool use_clip = false, glm::vec4 clip_plane = glm::vec4(0)) const;
+	//This helper function draws normal drawables
+	void draw_non_portals(glm::mat4 const &world_to_clip, 
+		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
+		glm::vec4 clip_plane = glm::vec4(0)) const;
 
-	void draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), bool use_clip = false, glm::vec4 clip_plane = glm::vec4(0)) const;
+	//And this one draws a single drawable
+	void draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, 
+		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
+		glm::vec4 clip_plane = glm::vec4(0)) const;
 
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:

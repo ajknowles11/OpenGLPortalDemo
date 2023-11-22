@@ -17,8 +17,6 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
-	void draw_recursive_portals(glm::mat4 view_mat, glm::vec3 view_pos, glm::vec4 clip_plane, GLint max_depth, GLint current_depth);
-
 	void handle_portals();
 
 	//----- game state -----

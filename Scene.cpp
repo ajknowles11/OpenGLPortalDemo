@@ -106,37 +106,168 @@ glm::vec4 Scene::Portal::get_self_clip_plane(glm::vec3 view_pos) {
 
 //-------------------------
 
-void Scene::draw(Camera const &camera, bool use_clip, glm::vec4 clip_plane) const {
+void Scene::draw(Camera const &camera) const {
 	assert(camera.transform);
 	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
 	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
-	draw(world_to_clip, world_to_light, use_clip, clip_plane);
+	glm::mat4x3 const cam_to_world = camera.transform->make_local_to_world();
+	glm::vec4 const clip_plane = glm::vec4(-cam_to_world[2], 
+		-glm::dot(cam_to_world * glm::vec4(0,0,0,1), -cam_to_world[2]));
+	draw(world_to_clip, world_to_light, clip_plane);
 }
 
-void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool use_clip, glm::vec4 clip_plane) const {
-	if (use_clip) {
-		glEnable(GL_CLIP_DISTANCE0);
+// https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
+// https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
+void Scene::draw(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 clip_plane, GLint max_recursion_lvl, GLint recursion_lvl) const {
+	
+	// Calculate view position using view matrix (world_to_clip matrix)
+	glm::vec3 const &view_pos = glm::vec3(world_to_clip[3]);
+	
+	for (auto &pair : portals) {
+		Scene::Portal *p = pair.second;
+		if (p->dest == nullptr) continue;
+		if (!p->active) continue;
+		// Disable color and depth drawing
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+
+		// Disable depth test
+		glDisable(GL_DEPTH_TEST);
+
+		// Enable stencil test, to prevent drawing outside
+		// region of current portal depth
+		glEnable(GL_STENCIL_TEST);
+
+		// Fail stencil test when inside of outer portal
+		// (fail where we should be drawing the inner portal)
+		glStencilFunc(GL_NOTEQUAL, recursion_lvl, 0xFF);
+
+		// Increment stencil value on stencil fail
+		// (on area of inner portal)
+		glStencilOp(GL_INCR, GL_KEEP, GL_KEEP);
+
+		// Enable (writing into) all stencil bits
+		glStencilMask(0xFF);
+
+		// Draw portal into stencil buffer
+		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_self_clip_plane(view_pos));
+
+
+		// Calculate new camera position as if player was already teleported
+		glm::mat4 const &new_view_mat = world_to_clip * glm::mat4(p->drawable->transform->make_local_to_world()) * glm::mat4(p->dest->drawable->transform->make_world_to_local());
+
+		// Base case, render inside of inner portal
+		if (recursion_lvl == max_recursion_lvl) {
+			// Enable color and depth drawing
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthMask(GL_TRUE);
+			
+			// Clear the depth buffer so we don't interfere with stuff
+			// outside of this inner portal
+			glClear(GL_DEPTH_BUFFER_BIT);
+
+			// Enable the depth test
+			// So the stuff we render here is rendered correctly
+			glEnable(GL_DEPTH_TEST);
+
+			// Enable stencil test
+			// So we can limit drawing inside of the inner portal
+			glEnable(GL_STENCIL_TEST);
+
+			// Disable drawing into stencil buffer
+			glStencilMask(0x00);
+
+			// Draw only where stencil value == recursionLevel + 1
+			// which is where we just drew the new portal
+			glStencilFunc(GL_EQUAL, recursion_lvl + 1, 0xFF);
+
+			// Draw scene objects with destView, limited to stencil buffer
+			// use an edited projection matrix to set the near plane to the portal plane
+			draw_non_portals(new_view_mat, glm::mat4x3(1.0f), p->dest->get_clipping_plane(world_to_clip[0]));
+		}
+		else
+		{
+			// Recursion case
+			// Pass our new view matrix and the clipped projection matrix (see above)
+			draw(new_view_mat, glm::mat4x3(1.0f), p->dest->get_clipping_plane(view_pos), max_recursion_lvl, recursion_lvl + 1);
+		}
+
+		// Disable color and depth drawing
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+
+		// Enable stencil test and stencil drawing
+		glEnable(GL_STENCIL_TEST);
+		glStencilMask(0xFF);
+
+		// Fail stencil test when inside of our newly rendered
+		// inner portal
+		glStencilFunc(GL_NOTEQUAL, recursion_lvl + 1, 0xFF);
+
+		// Decrement stencil value on stencil fail
+		// This resets the incremented values to what they were before,
+		// eventually ending up with a stencil buffer full of zero's again
+		// after the last (outer) step.
+		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
+
+		// Draw portal into stencil buffer
+		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_self_clip_plane(view_pos));
 	}
 
-	//Iterate through all drawables, sending each one to OpenGL:
+	// Disable the stencil test and stencil writing
+	glDisable(GL_STENCIL_TEST);
+	glStencilMask(0x00);
+
+	// Disable color writing
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	// Enable the depth test, and depth writing.
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+
+	// Make sure we always write the data into the buffer
+	glDepthFunc(GL_ALWAYS);
+
+	// Clear the depth buffer
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// Draw portals into depth buffer
+	for (auto &p : portals) {
+		if (p.second->dest == nullptr) continue;
+		if (!p.second->active) continue;
+		draw_one(*p.second->drawable, world_to_clip, glm::mat4x3(1.0f), p.second->get_self_clip_plane(view_pos));
+	}
+
+	// Reset the depth function to the default
+	glDepthFunc(GL_LESS);
+
+	// Enable stencil test and disable writing to stencil buffer
+	glEnable(GL_STENCIL_TEST);
+	glStencilMask(0x00);
+
+	// Draw at stencil >= recursionlevel
+	// which is at the current level or higher (more to the inside)
+	// This basically prevents drawing on the outside of this level.
+	glStencilFunc(GL_LEQUAL, recursion_lvl, 0xFF);
+
+	// Enable color and depth drawing again
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDepthMask(GL_TRUE);
+
+	// And enable the depth test
+	glEnable(GL_DEPTH_TEST);
+
+	// Draw scene objects normally, only at recursionLevel
+	draw_non_portals(world_to_clip, glm::mat4x3(1.0f), clip_plane);
+}
+
+void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 clip_plane) const {
 	for (auto const &drawable : drawables) {
-		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
+		draw_one(drawable, world_to_clip, world_to_light, clip_plane);
 	}
-
-	glUseProgram(0);
-	glBindVertexArray(0);
-
-	GL_ERRORS();
 }
 
-void Scene::draw_one(Drawable const &drawable, Camera const &camera, bool use_clip, glm::vec4 clip_plane) const {
-	assert(camera.transform);
-	glm::mat4 world_to_clip = camera.make_projection() * glm::mat4(camera.transform->make_world_to_local());
-	glm::mat4x3 world_to_light = glm::mat4x3(1.0f);
-	draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
-}
-
-void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool use_clip, glm::vec4 clip_plane) const {
+void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 clip_plane) const {
 	//Reference to drawable's pipeline for convenience:
 	Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
 
@@ -147,9 +278,7 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	//skip any drawables that don't contain any vertices:
 	if (pipeline.count == 0) return;
 
-	if (use_clip) {
-		glEnable(GL_CLIP_DISTANCE0);
-	}
+	glEnable(GL_CLIP_DISTANCE0);
 
 
 	//Set shader program:
@@ -184,7 +313,7 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 		glUniformMatrix3fv(pipeline.NORMAL_TO_LIGHT_mat3, 1, GL_FALSE, glm::value_ptr(normal_to_light));
 	}
 
-	if (use_clip && pipeline.CLIP_PLANE_vec4 != -1U) {
+	if (pipeline.CLIP_PLANE_vec4 != -1U) {
 		glUniform4fv(pipeline.CLIP_PLANE_vec4, 1, glm::value_ptr(clip_plane));
 	}
 
@@ -211,9 +340,12 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	}
 	glActiveTexture(GL_TEXTURE0);
 
-	if (use_clip) {
-		glDisable(GL_CLIP_DISTANCE0);
-	}
+	glUseProgram(0);
+	glBindVertexArray(0);
+
+	glDisable(GL_CLIP_DISTANCE0);
+
+	GL_ERRORS();
 }
 
 
