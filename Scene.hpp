@@ -146,7 +146,6 @@ struct Scene {
 		std::string on_walkmesh;
 
 		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
-		glm::vec4 get_self_clip_plane(glm::vec3 view_pos);
 	};
 
 	//Scenes, of course, may have many of the above objects:

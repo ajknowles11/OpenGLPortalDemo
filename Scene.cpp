@@ -89,27 +89,13 @@ glm::mat4 Scene::Camera::make_projection() const {
 
 //-------------------------
 
-// gets clipping plane used by portal's camera
+// gets clipping plane in the middle of this portal, facing away from view_pos
 glm::vec4 Scene::Portal::get_clipping_plane(glm::vec3 view_pos) {
 	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
 	glm::vec3 p_forward = glm::normalize(p_world[1]);
 	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
 	glm::vec3 const camera_offset_from_portal = view_pos - p_origin;
 	if (glm::dot(p_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
-
-	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
-}
-
-// gets clipping plane used for portal mesh itself (stop flicker)
-glm::vec4 Scene::Portal::get_self_clip_plane(glm::vec3 view_pos) {
-	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
-	glm::mat4x3 const t_world = dest->drawable->transform->make_local_to_world();
-	glm::vec3 p_forward = glm::normalize(p_world[1]);
-	glm::vec3 t_forward = glm::normalize(t_world[1]);
-	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
-	glm::vec3 const t_origin = glm::vec3(t_world * glm::vec4(0,0,0,1));
-	glm::vec3 const camera_offset_from_portal = view_pos - t_origin;
-	if (glm::dot(t_forward, camera_offset_from_portal) >= 0) p_forward *= -1;
 
 	return glm::vec4(p_forward, -glm::dot(p_origin, p_forward));
 }
@@ -162,7 +148,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilMask(0xFF);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_self_clip_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, glm::mat4x3(1.0f), p->get_clipping_plane(cam_transform.position));
 
 
 		// Calculate new camera transform as if player was already teleported
@@ -226,7 +212,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_self_clip_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_clipping_plane(cam_transform.position));
 	}
 
 	// Disable the stencil test and stencil writing
@@ -251,7 +237,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		Portal *p = pair.second;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
-		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_self_clip_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_clipping_plane(cam_transform.position));
 	}
 
 	// Reset the depth function to the default
