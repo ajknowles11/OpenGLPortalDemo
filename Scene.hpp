@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "gl_compile_program.hpp"
+
 #include <list>
 #include <memory>
 #include <functional>
@@ -174,6 +176,34 @@ struct Scene {
 	void draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, 
 		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
 		glm::vec4 const &clip_plane = glm::vec4(0)) const;
+
+	// Draw a tri covering the entire screen. Useful for selective depth buffer operations.
+	void draw_fullscreen_tri() const;
+	struct FullTriProgram {
+		FullTriProgram() {
+			program = gl_compile_program(
+				"#version 330\n"
+				"out vec2 texcoord;\n"
+				"void main() {\n"
+				"	float x,y;\n"
+				"	x = -1.0 + float((gl_VertexID & 1) << 2);\n"
+				"	y = -1.0 + float((gl_VertexID & 2) << 1);\n"
+				"	texcoord.x = (x + 1.0) * 0.5;\n"
+				"	texcoord.y = (y + 1.0) * 0.5;\n"
+				"	gl_Position = vec4(x, y, 0.0, 1.0);\n"
+				"}\n"
+			,
+				"#version 330\n"
+				"out vec4 fragColor;\n"
+				"void main() {\n"
+				"	fragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+				"}\n"
+			);
+			glGenVertexArrays(1, &vao);
+		}
+		GLuint program = 0;
+		GLuint vao = 0;
+	} full_tri_program;
 
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
