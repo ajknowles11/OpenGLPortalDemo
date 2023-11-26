@@ -170,14 +170,17 @@ struct Scene {
 	//This helper function draws normal drawables
 	void draw_non_portals(glm::mat4 const &world_to_clip, 
 		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
+		bool const &use_clip = false,
 		glm::vec4 const &clip_plane = glm::vec4(0)) const;
 
 	//And this one draws a single drawable
 	void draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, 
 		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
+		bool const &use_clip = false,
 		glm::vec4 const &clip_plane = glm::vec4(0)) const;
 
 	// Draw a tri covering the entire screen. Useful for selective depth buffer operations.
+	// https://stackoverflow.com/questions/2588875/whats-the-best-way-to-draw-a-fullscreen-quad-in-opengl-3-2
 	void draw_fullscreen_tri() const;
 	struct FullTriProgram {
 		FullTriProgram() {

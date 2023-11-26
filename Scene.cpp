@@ -148,7 +148,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilMask(0xFF);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_clipping_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
 
 
 		// Calculate new camera transform as if player was already teleported
@@ -170,6 +170,10 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Disable drawing into stencil buffer
 			glStencilMask(0x00);
 
+			// Draw only where stencil value == recursionLevel + 1
+			// which is where we just drew the new portal
+			glStencilFunc(GL_EQUAL, recursion_lvl + 1, 0xFF);
+
 			// Enable the depth test
 			// So the stuff we render here is rendered correctly
 			glEnable(GL_DEPTH_TEST);
@@ -185,13 +189,9 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			glDepthRange(0, 1);
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-			// Draw only where stencil value == recursionLevel + 1
-			// which is where we just drew the new portal
-			glStencilFunc(GL_EQUAL, recursion_lvl + 1, 0xFF);
-
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
-			draw_non_portals(new_world_to_clip, world_to_light, p->dest->get_clipping_plane(new_cam_transform.position));
+			draw_non_portals(new_world_to_clip, world_to_light, true, p->dest->get_clipping_plane(new_cam_transform.position));
 		}
 		else
 		{
@@ -218,7 +218,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_clipping_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
 	}
 
 	// Disable stencil writing
@@ -233,7 +233,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 	// Clear the depth buffer using our hack again
 	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_LEQUAL, recursion_lvl + 1, 0xFF);
+	glStencilFunc(GL_LEQUAL, recursion_lvl, 0xFF);
 	glDepthRange(1, 1);
 	glDepthFunc(GL_ALWAYS);
 	draw_fullscreen_tri();
@@ -250,7 +250,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		Portal *p = pair.second;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
-		draw_one(*p->drawable, world_to_clip, world_to_light, p->get_clipping_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
 	}
 
 	// Reset the depth function to the default
@@ -269,16 +269,16 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 	glEnable(GL_DEPTH_TEST);
 
 	// Draw scene objects normally, only at recursionLevel
-	draw_non_portals(world_to_clip, world_to_light, clip_plane);
+	draw_non_portals(world_to_clip, world_to_light, true, clip_plane);
 }
 
-void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 const &clip_plane) const {
+void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool const &use_clip, glm::vec4 const &clip_plane) const {
 	for (auto const &drawable : drawables) {
-		draw_one(drawable, world_to_clip, world_to_light, clip_plane);
+		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
 	}
 }
 
-void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, glm::vec4 const &clip_plane) const {
+void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool const &use_clip, glm::vec4 const &clip_plane) const {
 	//Reference to drawable's pipeline for convenience:
 	Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
 
@@ -289,7 +289,8 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	//skip any drawables that don't contain any vertices:
 	if (pipeline.count == 0) return;
 
-	glEnable(GL_CLIP_DISTANCE0);
+	if (use_clip)
+		glEnable(GL_CLIP_DISTANCE0);
 
 
 	//Set shader program:
@@ -354,7 +355,8 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	glUseProgram(0);
 	glBindVertexArray(0);
 
-	glDisable(GL_CLIP_DISTANCE0);
+	if (use_clip)
+		glDisable(GL_CLIP_DISTANCE0);
 
 	GL_ERRORS();
 }
