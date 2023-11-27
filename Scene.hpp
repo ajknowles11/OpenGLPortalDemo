@@ -197,15 +197,19 @@ struct Scene {
 				"}\n"
 			,
 				"#version 330\n"
+				"uniform vec4 CLEAR_COLOR;\n"
 				"out vec4 fragColor;\n"
 				"void main() {\n"
-				"	fragColor = vec4(1.0, 1.0, 1.0, 1.0);\n"
+				"	fragColor = CLEAR_COLOR;\n"
 				"}\n"
 			);
 			glGenVertexArrays(1, &vao);
+			CLEAR_COLOR_vec4 = glGetUniformLocation(program, "CLEAR_COLOR");
 		}
 		GLuint program = 0;
 		GLuint vao = 0;
+		GLuint CLEAR_COLOR_vec4 = -1U;
+
 	} full_tri_program;
 
 	//add transforms/objects/cameras from a scene file to this scene:

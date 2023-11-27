@@ -127,7 +127,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		if (!p->active) continue;
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glDepthMask(GL_FALSE);
+		glDepthMask(GL_TRUE);
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
@@ -160,8 +160,9 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 		// Base case, render inside of inner portal
 		if (recursion_lvl == max_recursion_lvl) {
-			// Disable color and enable depth drawing
-			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+			// Enable color and enable depth drawing
+			// (We enable color because draw_fullscreen_tri will also set the inside of portal to the clear color)
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glDepthMask(GL_TRUE);
 
 			// Enable stencil test
@@ -178,7 +179,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Enable the depth test
 			// So the stuff we render here is rendered correctly
 			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LESS);
+			glDepthFunc(GL_ALWAYS);
 
 			//https://stackoverflow.com/questions/38287235/opengl-how-to-implement-portal-rendering
 			// Now set depth range to (1,1), leaving a "hole" for new objects through the portal.
@@ -188,7 +189,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 			// Cleanup from depth clear hack
 			glDepthRange(0, 1);
-			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthFunc(GL_LESS);
 
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
@@ -207,6 +208,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		// Enable depth drawing
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_ALWAYS);
 		
 		// Clear the depth buffer within portal using our hack again
 		glEnable(GL_STENCIL_TEST);
@@ -352,6 +354,12 @@ void Scene::draw_fullscreen_tri() const {
 	}
 	glUseProgram(full_tri_program.program);
 	glBindVertexArray(full_tri_program.vao);
+
+	//set shader to draw clear color
+	GLfloat clear_color[4];
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, clear_color);
+	glUniform4fv(full_tri_program.CLEAR_COLOR_vec4, 1, clear_color);
+
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glUseProgram(0);
 	glBindVertexArray(0);
