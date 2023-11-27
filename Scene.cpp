@@ -131,6 +131,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
 
 		// Enable stencil test, to prevent drawing outside
 		// region of current portal depth
@@ -177,7 +178,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Enable the depth test
 			// So the stuff we render here is rendered correctly
 			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LESS);
+			glDepthFunc(GL_ALWAYS);
 
 			//https://stackoverflow.com/questions/38287235/opengl-how-to-implement-portal-rendering
 			// Now set depth range to (1,1), leaving a "hole" for new objects through the portal.
@@ -188,6 +189,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Cleanup from depth clear hack
 			glDepthRange(0, 1);
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthFunc(GL_LESS);
 
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
@@ -202,7 +204,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glDepthMask(GL_TRUE);
+		glDepthMask(GL_FALSE);
 
 		// Enable stencil test and stencil drawing
 		glEnable(GL_STENCIL_TEST);
@@ -218,6 +220,18 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
+	
+		// Disable stencil test and stencil drawing
+		glDisable(GL_STENCIL_TEST);
+		glStencilMask(0x00);
+
+		// Enable depth drawing
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+
+		// Draw portal into depth buffer
 		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
 	}
 
