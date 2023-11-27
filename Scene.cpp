@@ -178,7 +178,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Enable the depth test
 			// So the stuff we render here is rendered correctly
 			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_ALWAYS);
+			glDepthFunc(GL_LESS);
 
 			//https://stackoverflow.com/questions/38287235/opengl-how-to-implement-portal-rendering
 			// Now set depth range to (1,1), leaving a "hole" for new objects through the portal.
@@ -189,7 +189,6 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Cleanup from depth clear hack
 			glDepthRange(0, 1);
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			glDepthFunc(GL_LESS);
 
 			// Draw scene objects with destView, limited to stencil buffer
 			// use an edited projection matrix to set the near plane to the portal plane
@@ -202,12 +201,31 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			draw(cam_projection, new_cam_transform, p->dest->get_clipping_plane(new_cam_transform.position), max_recursion_lvl, recursion_lvl + 1);
 		}
 
-		// Disable color and depth drawing
+		// Disable color drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glDepthMask(GL_FALSE);
-
-		// Enable stencil test and stencil drawing
+		
+		// Enable depth drawing
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		
+		// Clear the depth buffer within portal using our hack again
 		glEnable(GL_STENCIL_TEST);
+		glStencilMask(0x00);
+		glStencilFunc(GL_EQUAL, recursion_lvl + 1, 0xFF);
+		glDepthRange(1, 1);
+		glDepthFunc(GL_ALWAYS);
+		draw_fullscreen_tri();
+		glDepthRange(0, 1);
+		
+		// Draw portal into depth buffer
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
+
+		// Disable depth drawing and test
+		glDisable(GL_DEPTH_TEST);
+		glDepthMask(GL_FALSE);
+		glDepthFunc(GL_LESS);
+
+		// Enable stencil drawing
 		glStencilMask(0xFF);
 
 		// Fail stencil test when inside of our newly rendered inner portal
@@ -221,54 +239,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 		// Draw portal into stencil buffer
 		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
-	
-		// Disable stencil test and stencil drawing
-		glDisable(GL_STENCIL_TEST);
-		glStencilMask(0x00);
-
-		// Enable depth drawing
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
-		glDepthMask(GL_TRUE);
-
-		// Draw portal into depth buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
 	}
-
-	// Disable stencil writing
-	glStencilMask(0x00);
-
-	// Disable color writing
-	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
-	// Disable the depth test, and depth writing.
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-
-	// Clear the depth buffer using our hack again
-	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_LEQUAL, recursion_lvl, 0xFF);
-	glDepthRange(1, 1);
-	glDepthFunc(GL_ALWAYS);
-	draw_fullscreen_tri();
-	glDepthRange(0, 1);
-
-	glDisable(GL_STENCIL_TEST);
-
-	// Enable the depth test, and depth writing.
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
-
-	// Draw portals into depth buffer
-	for (auto &pair : portals) {
-		Portal *p = pair.second;
-		if (p->dest == nullptr) continue;
-		if (!p->active) continue;
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
-	}
-
-	// Reset the depth function to the default
-	glDepthFunc(GL_LESS);
 
 	// Draw at stencil >= recursionlevel
 	// which is at the current level or higher (more to the inside)
