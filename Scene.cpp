@@ -251,6 +251,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 	// Enable color and depth drawing again
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glDepthMask(GL_TRUE);
+	glStencilMask(0x00);
 
 	// And enable the depth test
 	glEnable(GL_DEPTH_TEST);

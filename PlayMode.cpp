@@ -59,8 +59,6 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 		}
 		//now we can assign it when we create this portal
 
-		///!!!! DO THIS IN A WAY THAT ACTUALLY WORKS IN PRACTICE!!!!
-
 		//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 		if (portal == nullptr) { //not already created
 			portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
