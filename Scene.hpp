@@ -165,7 +165,8 @@ struct Scene {
 		Transform const &cam_transform, 
 		glm::vec4 const &clip_plane = glm::vec4(0), 
 		GLint max_recursion_lvl = 0, 
-		GLint recursion_lvl = 0) const;
+		GLint recursion_lvl = 0,
+		std::string name = "") const;
 	
 	GLint default_draw_recursion_max = 0;
 
