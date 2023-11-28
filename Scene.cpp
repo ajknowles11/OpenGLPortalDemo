@@ -110,7 +110,7 @@ void Scene::draw(Camera const &camera) const {
 	Transform cam_transform = Transform();
 	cam_transform.make_global(*camera.transform);
 
-	draw(camera.make_projection(), cam_transform, clip_plane, 0);
+	draw(camera.make_projection(), cam_transform, clip_plane, default_draw_recursion_max);
 }
 
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
@@ -231,7 +231,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilMask(0xFF);
 
 		// Fail stencil test when inside of our newly rendered inner portal
-		glStencilFunc(GL_NOTEQUAL, recursion_lvl + 1, 0xFF);
+		glStencilFunc(GL_LESS, recursion_lvl + 1, 0xFF);
 
 		// Decrement stencil value on stencil fail
 		// This resets the incremented values to what they were before,

@@ -25,7 +25,11 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up, space;
+		uint8_t last_pressed = 0; //useful for only doing things once on press / release
+	} left, right, down, up, space, debug_menu, up_arrow, down_arrow;
+
+	bool draw_debug = false;
+	float frame_delta = 0;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;

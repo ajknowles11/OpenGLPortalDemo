@@ -152,6 +152,18 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			space.downs += 1;
 			space.pressed = true;
 			return true;
+		} else if (evt.key.keysym.sym == SDLK_F3) {
+			debug_menu.downs += 1;
+			debug_menu.pressed = true;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_UP) {
+			up_arrow.downs += 1;
+			up_arrow.pressed = true;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_DOWN) {
+			down_arrow.downs += 1;
+			down_arrow.pressed = true;
+			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
@@ -168,6 +180,15 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_SPACE) {
 			space.pressed = false;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_F3) {
+			debug_menu.pressed = false;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_UP) {
+			up_arrow.pressed = false;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_DOWN) {
+			down_arrow.pressed = false;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
@@ -287,6 +308,20 @@ void PlayMode::update(float elapsed) {
 	else {
 		player.transform->position += remain;
 	}
+
+	//debug stuff
+	frame_delta = elapsed;
+	if (debug_menu.pressed && !debug_menu.last_pressed) {
+		draw_debug = !draw_debug;
+	}
+	if (up_arrow.pressed && !up_arrow.last_pressed) {
+		scene.default_draw_recursion_max += 1;
+		std::cout << "Max draw recursion lvl: " << scene.default_draw_recursion_max << "\n";
+	}
+	if (down_arrow.pressed && !down_arrow.last_pressed && scene.default_draw_recursion_max > 0) {
+		scene.default_draw_recursion_max -= 1;
+		std::cout << "Max draw recursion lvl: " << scene.default_draw_recursion_max << "\n";
+	}
 	
 	//reset button press counters:
 	left.downs = 0;
@@ -294,6 +329,19 @@ void PlayMode::update(float elapsed) {
 	up.downs = 0;
 	down.downs = 0;
 	space.downs = 0;
+	debug_menu.downs = 0;
+	up_arrow.downs = 0;
+	down_arrow.downs = 0;
+
+	//and adjust last_pressed:
+	left.last_pressed = left.pressed;
+	right.last_pressed = right.pressed;
+	up.last_pressed = up.pressed;
+	down.last_pressed = down.pressed;
+	space.last_pressed = space.pressed;
+	debug_menu.last_pressed = debug_menu.pressed;
+	up_arrow.last_pressed = up_arrow.pressed;
+	down_arrow.last_pressed = down_arrow.pressed;
 
 	handle_portals();
 }
@@ -392,9 +440,21 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
 		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse; SPACE to press button",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
+			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		
+		if (draw_debug) {
+			std::string const &fps = std::to_string(int(glm::round(1.0f / frame_delta)));
+			lines.draw_text(fps,
+			glm::vec3(-aspect + 0.1f * H, 0.99 - H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+			lines.draw_text(fps,
+			glm::vec3(-aspect + 0.1f * H + ofs, 0.99 - H + ofs, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		}
 	}
 	GL_ERRORS();
 }

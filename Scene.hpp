@@ -166,6 +166,8 @@ struct Scene {
 		glm::vec4 const &clip_plane = glm::vec4(0), 
 		GLint max_recursion_lvl = 0, 
 		GLint recursion_lvl = 0) const;
+	
+	GLint default_draw_recursion_max = 0;
 
 	//This helper function draws normal drawables
 	void draw_non_portals(glm::mat4 const &world_to_clip, 
