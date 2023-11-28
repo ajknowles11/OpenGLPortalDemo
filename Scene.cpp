@@ -372,7 +372,7 @@ void Scene::draw_fullscreen_tri() const {
 
 void Scene::load(std::string const &filename,
 	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal) {
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &) > const &on_portal) {
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -395,9 +395,10 @@ void Scene::load(std::string const &filename,
 		uint32_t transform;
 		uint32_t name_begin;
 		uint32_t name_end;
-		uint32_t dest;
+		uint32_t dest_begin;
+		uint32_t dest_end;
 	};
-	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4, "PortalEntry is packed.");
+	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4 + 4, "PortalEntry is packed.");
 	std::vector< PortalEntry > portal_meshes;
 	read_chunk(file, "prt0", &portal_meshes);
 
@@ -464,6 +465,7 @@ void Scene::load(std::string const &filename,
 	assert(hierarchy_transforms.size() == hierarchy.size());
 
 	for (auto const &p : portal_meshes) {
+		std::string dest = "";
 		if (p.transform >= hierarchy_transforms.size()) {
 			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid transform index (" + std::to_string(p.transform) + ")");
 		}
@@ -471,12 +473,15 @@ void Scene::load(std::string const &filename,
 			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid name indices");
 		}
 		std::string name = std::string(names.begin() + p.name_begin, names.begin() + p.name_end);
-		if (p.dest >= hierarchy_transforms.size()) {
-			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid dest transform index (" + std::to_string(p.transform) + ")");
+		if (p.dest_begin <= p.dest_end && p.dest_end <= names.size()) {
+			dest = std::string(names.begin() + p.dest_begin, names.begin() + p.dest_end);
+		}
+		else {
+			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid dest name indices (" + std::to_string(p.transform) + ")");
 		}
 
 		if (on_portal) {
-			on_portal(*this, hierarchy_transforms[p.transform], name, hierarchy_transforms[p.dest]);
+			on_portal(*this, hierarchy_transforms[p.transform], name, dest);
 		}
 	}
 
@@ -547,7 +552,7 @@ void Scene::load(std::string const &filename,
 //-------------------------
 
 Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal) {
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &) > const &on_portal) {
 	load(filename, on_drawable, on_portal);
 }
 

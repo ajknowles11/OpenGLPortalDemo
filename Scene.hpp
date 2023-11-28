@@ -220,7 +220,7 @@ struct Scene {
 	// throws on file format errors
 	void load(std::string const &filename,
 		std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable = nullptr,
-		std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal = nullptr
+		std::function< void(Scene &, Transform *, std::string const &, std::string const &) > const &on_portal = nullptr
 	);
 
 	//this function is called to read extra chunks from the scene file after the main chunks are read:
@@ -232,7 +232,7 @@ struct Scene {
 
 	//load a scene:
 	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-		std::function< void(Scene &, Transform *, std::string const &, Transform *) > const &on_portal);
+		std::function< void(Scene &, Transform *, std::string const &, std::string const &) > const &on_portal);
 
 	//copy a scene (with proper pointer fixup):
 	Scene(Scene const &); //...as a constructor

@@ -35,7 +35,7 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
 
-	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, Scene::Transform *dest_transform){
+	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
 
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
@@ -51,20 +51,31 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 		//so when we link portals up here, we need to make sure we can index using the dest transform's name (not mesh name).
 		//We should probably make these the same anyway just because it's nicer.
 		Scene::Portal *&portal = scene.portals[transform->name];
-		Scene::Portal *&dest = scene.portals[dest_transform->name];
+		if (dest_name != "") {
+			Scene::Portal *&dest = scene.portals[dest_name];
 
-		//dest portal may have already been created in the scene. if not we make a temp one now (keep its pointer value the same later)
-		if (dest == nullptr) { //not already created
-			dest = new Scene::Portal();
-		}
-		//now we can assign it when we create this portal
+			//dest portal may have already been created in the scene. if not we make a temp one now (keep its pointer value the same later)
+			if (dest == nullptr) { //not already created
+				dest = new Scene::Portal();
+			}
+			//now we can assign it when we create this portal
 
-		//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
-		if (portal == nullptr) { //not already created
-			portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
+			if (portal == nullptr) { //not already created
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+			}
+			else { //already created (don't change pointer, just value pointed to)
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+			}
 		}
-		else { //already created (don't change pointer, just value pointed to)
-			*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+		else {
+			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
+			if (portal == nullptr) { //not already created
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1");
+			}
+			else { //already created (don't change pointer, just value pointed to)
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1");
+			}
 		}
 
 	});
