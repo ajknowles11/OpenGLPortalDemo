@@ -35,7 +35,7 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
 
-	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name){
+	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
 
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
@@ -62,19 +62,19 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 
 			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 			if (portal == nullptr) { //not already created
-				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest);
 			}
 			else { //already created (don't change pointer, just value pointed to)
-				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1", dest);
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest);
 			}
 		}
 		else {
 			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 			if (portal == nullptr) { //not already created
-				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1");
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name);
 			}
 			else { //already created (don't change pointer, just value pointed to)
-				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), "L1");
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name);
 			}
 		}
 
@@ -115,10 +115,14 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 
 	//gather walkmeshes
 	{
-		walkmesh_map.emplace("L1", &walkmeshes->lookup("Walkmesh"));
+		for (auto const &p : scene.portals) {
+			if (walkmesh_map.count(p.second->on_walkmesh) == 0) {
+				walkmesh_map.emplace(p.second->on_walkmesh, &walkmeshes->lookup(p.second->on_walkmesh));
+			}
+		}
 	}
 
-	walkmesh = walkmesh_map["L1"];
+	walkmesh = walkmesh_map["Walkmesh"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {

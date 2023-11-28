@@ -372,7 +372,7 @@ void Scene::draw_fullscreen_tri() const {
 
 void Scene::load(std::string const &filename,
 	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, std::string const &) > const &on_portal) {
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std:: string const &) > const &on_portal) {
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -397,8 +397,10 @@ void Scene::load(std::string const &filename,
 		uint32_t name_end;
 		uint32_t dest_begin;
 		uint32_t dest_end;
+		uint32_t walk_mesh_begin;
+		uint32_t walk_mesh_end;
 	};
-	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4 + 4, "PortalEntry is packed.");
+	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4 + 4 + 4 + 4, "PortalEntry is packed.");
 	std::vector< PortalEntry > portal_meshes;
 	read_chunk(file, "prt0", &portal_meshes);
 
@@ -466,6 +468,7 @@ void Scene::load(std::string const &filename,
 
 	for (auto const &p : portal_meshes) {
 		std::string dest = "";
+		std::string walk_mesh = "";
 		if (p.transform >= hierarchy_transforms.size()) {
 			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid transform index (" + std::to_string(p.transform) + ")");
 		}
@@ -479,9 +482,15 @@ void Scene::load(std::string const &filename,
 		else {
 			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid dest name indices (" + std::to_string(p.transform) + ")");
 		}
+		if (p.walk_mesh_begin <= p.walk_mesh_end && p.walk_mesh_end <= names.size()) {
+			walk_mesh = std::string(names.begin() + p.walk_mesh_begin, names.begin() + p.walk_mesh_end);
+		}
+		else {
+			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid walk mesh name indices (" + std::to_string(p.transform) + ")");
+		}
 
 		if (on_portal) {
-			on_portal(*this, hierarchy_transforms[p.transform], name, dest);
+			on_portal(*this, hierarchy_transforms[p.transform], name, dest, walk_mesh);
 		}
 	}
 
@@ -552,7 +561,7 @@ void Scene::load(std::string const &filename,
 //-------------------------
 
 Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, std::string const &) > const &on_portal) {
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal) {
 	load(filename, on_drawable, on_portal);
 }
 

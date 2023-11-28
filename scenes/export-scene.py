@@ -124,12 +124,14 @@ def write_xfh(obj):
 def write_portal(obj):
     global portal_data
     assert(obj.type == 'MESH' and obj.portal_data.is_portal)
+    assert(obj.portal_data.walk_mesh != None)
 
     portal_data += write_xfh(obj) #hierarchy reference
     portal_data += write_string(obj.data.name) #mesh name
     dest_name = "" if obj.portal_data.dest == None else obj.portal_data.dest.name
     portal_data += write_string(dest_name) #dest name
-    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + " / " + dest_name)
+    portal_data += write_string(obj.portal_data.walk_mesh.name) #dest name
+    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + dest_name + " / " + obj.portal_data.walk_mesh.name)
 
 #write_mesh will add an object to the mesh section:
 def write_mesh(obj):
