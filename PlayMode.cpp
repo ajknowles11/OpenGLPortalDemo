@@ -388,7 +388,8 @@ void PlayMode::handle_portals() {
 		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
 			//teleport
 
-			glm::mat4 const m_reverse = glm::mat4(p->dest->drawable->transform->make_local_to_world()) * glm::mat4(p_local);
+			glm::mat4x3 const &dest_world = p->dest->drawable->transform->make_local_to_world();
+			glm::mat4 const m_reverse = glm::mat4(dest_world) * glm::mat4(p_local);
 
 			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
