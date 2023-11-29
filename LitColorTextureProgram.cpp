@@ -84,6 +84,8 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"in vec4 color;\n"
 		"in vec2 texCoord;\n"
 		"out vec4 fragColor;\n"
+		"out vec3 outNormal;\n"
+		"out float outDepth;\n"
 		"void main() {\n"
 		"	vec3 n = normalize(normal);\n"
 		"	vec3 e;\n"
@@ -108,6 +110,8 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"	}\n"
 		"	vec4 albedo = texture(TEX, texCoord) * color;\n"
 		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
+		"	outNormal = n;\n"
+		"	outDepth = gl_FragCoord.z;\n"
 		"}\n"
 	);
 	//As you can see above, adjacent strings in C/C++ are concatenated.
