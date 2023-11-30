@@ -21,6 +21,8 @@ struct PlayMode : Mode {
 
 	//----- game state -----
 
+	uint32_t next_portal_id = 0;
+
 	//input tracking:
 	struct Button {
 		uint8_t downs = 0;

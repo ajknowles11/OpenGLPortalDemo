@@ -135,8 +135,12 @@ struct Scene {
 
 	struct Portal {
 		Portal() : active(false) {}
-		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_) : Portal(drawable_, box_, on_walkmesh_, nullptr) {}
-		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, Portal *dest_) : drawable(drawable_), box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), on_walkmesh(on_walkmesh_), dest(dest_) {}
+		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_) : 
+			Portal(drawable_, box_, on_walkmesh_, nullptr) {}
+		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, 
+			Portal *dest_) : drawable(drawable_), 
+			box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), 
+			on_walkmesh(on_walkmesh_), dest(dest_) {}
 		~Portal() {}
 		Drawable *drawable = nullptr;
 		Portal *dest = nullptr;
@@ -166,7 +170,7 @@ struct Scene {
 		glm::vec4 const &clip_plane = glm::vec4(0), 
 		GLint max_recursion_lvl = 0, 
 		GLint recursion_lvl = 0,
-		std::string name = "") const;
+		Portal const *from = nullptr) const;
 	
 	GLint default_draw_recursion_max = 0;
 

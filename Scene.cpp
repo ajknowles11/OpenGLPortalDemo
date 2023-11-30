@@ -115,7 +115,7 @@ void Scene::draw(Camera const &camera) const {
 
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
-void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform, glm::vec4 const &clip_plane, GLint max_recursion_lvl, GLint recursion_lvl, std::string name) const {
+void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform, glm::vec4 const &clip_plane, GLint max_recursion_lvl, GLint recursion_lvl, Portal const *from) const {
 	
 	//Calculate world_to_clip and world_to_light matrices for this case
 	glm::mat4 const &world_to_clip = cam_projection * glm::mat4(cam_transform.make_world_to_local());
@@ -123,7 +123,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 	
 	for (auto &pair : portals) {
 		Scene::Portal *p = pair.second;
-		if (name == p->drawable->transform->name) continue;
+		if (p == from) continue;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
 		if (!is_portal_visible(world_to_clip, *p)) continue;
@@ -205,7 +205,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 			// Recursion case
 
 			// Pass our new view matrix and the clipped projection matrix (see above)
-			draw(cam_projection, new_cam_transform, p->dest->get_clipping_plane(new_cam_transform.position), max_recursion_lvl, recursion_lvl + 1, p->dest->drawable->transform->name);
+			draw(cam_projection, new_cam_transform, p->dest->get_clipping_plane(new_cam_transform.position), max_recursion_lvl, recursion_lvl + 1, p->dest);
 		}
 
 		// Disable color drawing
