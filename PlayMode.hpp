@@ -48,11 +48,49 @@ struct PlayMode : Mode {
 		Scene::Transform *transform = nullptr;
 		//camera is at player's head and will be pitched by mouse up/down motion:
 		Scene::Camera *camera = nullptr;
+
+		bool animation_lock_move = false;
+		bool animation_lock_look = false;
+		bool fall_to_walkmesh = false;
+		
+		glm::vec3 velocity;
+		float gravity = 7.5f;
 	} player;
 
 	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
 	WalkMesh const *walkmesh = nullptr;
+
+	struct Timer {
+		float max_acc = 1;
+		float acc = 0;
+		std::function<void()> on_finish = {};
+		std::function<void(float)> on_tick = {};
+		void tick(float elapsed) {
+			acc += elapsed;
+			if (acc > max_acc) {
+				acc = max_acc;
+				if (on_tick) on_tick(alpha());
+				if (on_finish) on_finish();
+				if (auto_delete) {
+					queued_for_delete = true;
+				}
+			}
+			else {
+				if (on_tick) on_tick(alpha());
+			}
+		}
+		float alpha() {
+			return acc / max_acc;
+		}
+
+		bool active = false;
+
+		bool auto_delete = true;
+		bool queued_for_delete = false;
+	};
+
+	std::vector<Timer> timers;
 
 
 	//----- Screen Shader Related -----

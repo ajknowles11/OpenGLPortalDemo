@@ -15,15 +15,15 @@
 #include <random>
 
 GLuint basic_meshes_for_lit_color_texture_program = 0;
-Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("basic_portals.pnct"));
+Load< MeshBuffer > apartment_meshes(LoadTagDefault, []() -> MeshBuffer const * {
+	MeshBuffer const *ret = new MeshBuffer(data_path("level/apartment.pnct"));
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
-Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("basic_portals.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
-		Mesh const &mesh = basic_meshes->lookup(mesh_name);
+Load< Scene > apartment_scene(LoadTagDefault, []() -> Scene const * {
+	return new Scene(data_path("level/apartment.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+		Mesh const &mesh = apartment_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
@@ -36,7 +36,7 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 		drawable.pipeline.count = mesh.count;
 
 	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name){
-		Mesh const &mesh = basic_meshes->lookup(mesh_name);
+		Mesh const &mesh = apartment_meshes->lookup(mesh_name);
 
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
 
@@ -82,7 +82,7 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("basic_portals.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("level/apartment.w"));
 	return ret;
 });
 
@@ -90,7 +90,7 @@ Load< Scene::FullTriProgram > full_tri_program(LoadTagEarly, []() -> Scene::Full
 	return new Scene::FullTriProgram();
 });
 
-PlayMode::PlayMode() : scene(*basic_scene) {
+PlayMode::PlayMode() : scene(*apartment_scene) {
 	scene.full_tri_program = *full_tri_program;
 
 	//create a player transform:
@@ -122,7 +122,7 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 		}
 	}
 
-	walkmesh = walkmesh_map["Walkmesh"];
+	walkmesh = walkmesh_map["ApartmentWalkMesh"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
@@ -223,7 +223,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
-		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
+		if (SDL_GetRelativeMouseMode() == SDL_TRUE && !player.animation_lock_look) {
 			glm::vec2 motion = glm::vec2(
 				evt.motion.xrel / float(window_size.y),
 				-evt.motion.yrel / float(window_size.y)
@@ -246,9 +246,25 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
-	//player walking:
+	//used for intro
+	if (player.fall_to_walkmesh) {
+		player.velocity.z -= player.gravity * elapsed;
+		glm::vec3 new_pos = player.transform->position + player.velocity * elapsed;
+		WalkPoint nearest_walk_point = walkmesh->nearest_walk_point(player.transform->position);
+		if (new_pos.z <= walkmesh->to_world_point(nearest_walk_point).z) {
+			player.fall_to_walkmesh = false;
+			player.uses_walkmesh = true;
+			player.at = nearest_walk_point;
+		}
+		else {
+			player.transform->position = new_pos;
+		}
+	}
 
-	//combine inputs into a move:
+
+	//player walking:
+	if (!player.animation_lock_move) {
+		//combine inputs into a move:
 		constexpr float PlayerSpeed = 5.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
@@ -262,77 +278,78 @@ void PlayMode::update(float elapsed) {
 		//get move in world coordinate system:
 		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
 
-	if (player.uses_walkmesh) {
-		//using a for() instead of a while() here so that if walkpoint gets stuck in
-		// some awkward case, code will not infinite loop:
-		for (uint32_t iter = 0; iter < 10; ++iter) {
-			if (remain == glm::vec3(0.0f)) break;
-			WalkPoint end;
-			float time;
-			walkmesh->walk_in_triangle(player.at, remain, &end, &time);
-			player.at = end;
-			if (time == 1.0f) {
-				//finished within triangle:
-				remain = glm::vec3(0.0f);
-				break;
-			}
-			//some step remains:
-			remain *= (1.0f - time);
-			//try to step over edge:
-			glm::quat rotation;
-			if (walkmesh->cross_edge(player.at, &end, &rotation)) {
-				//stepped to a new triangle:
+		if (player.uses_walkmesh) {
+			//using a for() instead of a while() here so that if walkpoint gets stuck in
+			// some awkward case, code will not infinite loop:
+			for (uint32_t iter = 0; iter < 10; ++iter) {
+				if (remain == glm::vec3(0.0f)) break;
+				WalkPoint end;
+				float time;
+				walkmesh->walk_in_triangle(player.at, remain, &end, &time);
 				player.at = end;
-				//rotate step to follow surface:
-				remain = rotation * remain;
-			} else {
-				//ran into a wall, bounce / slide along it:
-				glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
-				glm::vec3 const &b = walkmesh->vertices[player.at.indices.y];
-				glm::vec3 const &c = walkmesh->vertices[player.at.indices.z];
-				glm::vec3 along = glm::normalize(b-a);
-				glm::vec3 normal = glm::normalize(glm::cross(b-a, c-a));
-				glm::vec3 in = glm::cross(normal, along);
-
-				//check how much 'remain' is pointing out of the triangle:
-				float d = glm::dot(remain, in);
-				if (d < 0.0f) {
-					//bounce off of the wall:
-					remain += (-1.25f * d) * in;
+				if (time == 1.0f) {
+					//finished within triangle:
+					remain = glm::vec3(0.0f);
+					break;
+				}
+				//some step remains:
+				remain *= (1.0f - time);
+				//try to step over edge:
+				glm::quat rotation;
+				if (walkmesh->cross_edge(player.at, &end, &rotation)) {
+					//stepped to a new triangle:
+					player.at = end;
+					//rotate step to follow surface:
+					remain = rotation * remain;
 				} else {
-					//if it's just pointing along the edge, bend slightly away from wall:
-					remain += 0.01f * d * in;
+					//ran into a wall, bounce / slide along it:
+					glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
+					glm::vec3 const &b = walkmesh->vertices[player.at.indices.y];
+					glm::vec3 const &c = walkmesh->vertices[player.at.indices.z];
+					glm::vec3 along = glm::normalize(b-a);
+					glm::vec3 normal = glm::normalize(glm::cross(b-a, c-a));
+					glm::vec3 in = glm::cross(normal, along);
+
+					//check how much 'remain' is pointing out of the triangle:
+					float d = glm::dot(remain, in);
+					if (d < 0.0f) {
+						//bounce off of the wall:
+						remain += (-1.25f * d) * in;
+					} else {
+						//if it's just pointing along the edge, bend slightly away from wall:
+						remain += 0.01f * d * in;
+					}
 				}
 			}
+
+			if (remain != glm::vec3(0.0f)) {
+				std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
+			}
+
+			//update player's position to respect walking:
+			player.transform->position = walkmesh->to_world_point(player.at);
+
+			// { //update player's rotation to respect local (smooth) up-vector:
+				
+			// 	glm::quat adjust = glm::rotation(
+			// 		player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), //current up vector
+			// 		walkmesh->to_world_smooth_normal(player.at) //smoothed up vector at walk location
+			// 	);
+			// 	player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
+			// }
+
+			/*
+			glm::mat4x3 frame = camera->transform->make_local_to_parent();
+			glm::vec3 right = frame[0];
+			//glm::vec3 up = frame[1];
+			glm::vec3 forward = -frame[2];
+
+			camera->transform->position += move.x * right + move.y * forward;
+			*/
 		}
-
-		if (remain != glm::vec3(0.0f)) {
-			std::cout << "NOTE: code used full iteration budget for walking." << std::endl;
+		else {
+			//player.transform->position += remain;
 		}
-
-		//update player's position to respect walking:
-		player.transform->position = walkmesh->to_world_point(player.at);
-
-		// { //update player's rotation to respect local (smooth) up-vector:
-			
-		// 	glm::quat adjust = glm::rotation(
-		// 		player.transform->rotation * glm::vec3(0.0f, 0.0f, 1.0f), //current up vector
-		// 		walkmesh->to_world_smooth_normal(player.at) //smoothed up vector at walk location
-		// 	);
-		// 	player.transform->rotation = glm::normalize(adjust * player.transform->rotation);
-		// }
-
-		/*
-		glm::mat4x3 frame = camera->transform->make_local_to_parent();
-		glm::vec3 right = frame[0];
-		//glm::vec3 up = frame[1];
-		glm::vec3 forward = -frame[2];
-
-		camera->transform->position += move.x * right + move.y * forward;
-		*/
-	}
-	else {
-		player.transform->position += remain;
 	}
 
 	//debug stuff
@@ -402,14 +419,33 @@ void PlayMode::handle_portals() {
 			glm::mat4x3 const &dest_world = p->dest->drawable->transform->make_local_to_world();
 			glm::mat4 const m_reverse = glm::mat4(dest_world) * glm::mat4(p_local);
 
-			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
-			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
-			p->dest->sleeping = true;
+			// SPECIAL CASES ----------------------------
 
-			walkmesh = walkmesh_map[p->dest->on_walkmesh];
-			if (walkmesh != nullptr) {
-				player.at = walkmesh->nearest_walk_point(player.transform->position);
+			if (p == scene.portals["PortalFridge"]) {
+				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - 1.8f;
+				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
+				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
+				walkmesh = walkmesh_map[p->dest->on_walkmesh];
+				player.uses_walkmesh = false;
+				player.fall_to_walkmesh = true;
+				
 			}
+
+
+
+			// normal case below ------------------------
+
+			else {
+				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
+				player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
+				p->dest->sleeping = true;
+
+				walkmesh = walkmesh_map[p->dest->on_walkmesh];
+				if (walkmesh != nullptr) {
+					player.at = walkmesh->nearest_walk_point(player.transform->position);
+				}
+			}
+			
 		}
 	}
 }
