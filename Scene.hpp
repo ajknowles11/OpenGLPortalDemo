@@ -148,7 +148,7 @@ struct Scene {
 		bool player_in_front = false;
 		bool sleeping = false;
 
-		bool active = true;
+		bool active = false;
 		std::string on_walkmesh;
 
 		glm::vec4 get_clipping_plane(glm::vec3 view_pos);

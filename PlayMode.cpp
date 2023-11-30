@@ -143,7 +143,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
-	scene.portals["HallExit"]->active = false;
+
 	
 
 	//Button scripting
@@ -151,6 +151,19 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		if (b.name == "FridgeDoor") {
 			b.on_pressed = [&](){
 				b.active = false;
+				scene.portals["PortalFridge"]->active = true;
+				scene.portals["Drop0"]->active = true;
+				scene.portals["Drop1"]->active = true;
+				scene.portals["StairPortalA"]->active = true;
+				scene.portals["StairPortalB"]->active = true;
+				scene.portals["StairPortal0"]->active = true;
+				scene.portals["StairPortal1"]->active = true;
+				scene.portals["StairPortal2"]->active = true;
+				scene.portals["StairPortal3"]->active = true;
+				scene.portals["StairPortal0b"]->active = true;
+				scene.portals["StairPortal1b"]->active = true;
+				scene.portals["StairPortal2b"]->active = true;
+				scene.portals["StairPortal3b"]->active = true;
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
@@ -658,6 +671,57 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal1b"]->active = true;
 				scene.portals["StairPortal2b"]->active = true;
 				scene.portals["StairPortal3b"]->active = true;
+			}
+
+			else if (p == scene.portals["HallExit"]) {
+				scene.portals["StairPortalA"]->active = false;
+				scene.portals["StairPortalB"]->active = false;
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+
+				scene.default_draw_recursion_max = 1;
+			}
+
+			else if (p == scene.portals["HallExit"]) {
+				scene.portals["StairPortalA"]->active = false;
+				scene.portals["StairPortalB"]->active = false;
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+				scene.portals["Drop0"]->active = false;
+				scene.portals["Drop1"]->active = false;
+				scene.portals["EnterPlayground"]->active = true;
+
+				scene.default_draw_recursion_max = 2;
+			}
+			else if (p == scene.portals["FunZone"]) {
+				scene.portals["StairPortalA"]->active = true;
+				scene.portals["StairPortalB"]->active = true;
+				scene.portals["StairPortal0"]->active = true;
+				scene.portals["StairPortal1"]->active = true;
+				scene.portals["StairPortal2"]->active = true;
+				scene.portals["StairPortal0b"]->active = true;
+				scene.portals["StairPortal1b"]->active = true;
+				scene.portals["StairPortal2b"]->active = true;
+				scene.portals["StairPortal3b"]->active = true;
+				scene.portals["Drop0"]->active = true;
+				scene.portals["Drop1"]->active = true;
+
+				scene.portals["EnterPlayground"]->active = false;
+
+				scene.default_draw_recursion_max = 0;
+			}
+			else if (p == scene.portals["EnterPlayground"]) {
+				scene.portals["FunZone"]->active = false;
 			}
 
 
