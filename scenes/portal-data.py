@@ -1,10 +1,10 @@
 bl_info = {
     "name": "Portal Data",
     "author": "Andrew Knowles",
-    "version": (0, 2),
+    "version": (0, 3),
     "blender": (2, 80, 0),
     "location": "Properties > Object > Portal Data",
-    "description": "Allows meshes to be marked as portals with destinations",
+    "description": "Allows meshes to be marked as portals with destinations, and adds some object types.",
     "warning": "",
     "doc_url": "",
     "category": "Genious",
@@ -45,6 +45,18 @@ class PortalProperties(PropertyGroup):
         type = bpy.types.Object
     )
 
+    is_button: BoolProperty(
+        name = "Is Button",
+        description = "Whether this object should be exported as a button, with crosshair check",
+        default = False
+    )
+
+    is_trigger: BoolProperty(
+        name = "Is Trigger",
+        description = "Whether this object should be exported as a trigger, calling a function when entered",
+        default = False
+    )
+
 # Panel
 
 class UV_PT_portals_panel(Panel):
@@ -62,6 +74,8 @@ class UV_PT_portals_panel(Panel):
         layout.prop(portaldata, "is_portal")
         layout.prop(portaldata, "dest")
         layout.prop(portaldata, "walk_mesh")
+        layout.prop(portaldata, "is_button")
+        layout.prop(portaldata, "is_trigger")
 
 # Registration
 

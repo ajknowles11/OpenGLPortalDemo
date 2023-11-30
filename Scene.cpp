@@ -429,7 +429,8 @@ bool Scene::is_portal_visible(glm::mat4 const &world_to_clip, Portal const &port
 
 void Scene::load(std::string const &filename,
 	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std:: string const &) > const &on_portal) {
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std:: string const &) > const &on_portal, 
+	std::function< void(Scene &, Transform *, std::string const &) > const &on_button) {
 
 	std::ifstream file(filename, std::ios::binary);
 
@@ -460,6 +461,15 @@ void Scene::load(std::string const &filename,
 	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4 + 4 + 4 + 4, "PortalEntry is packed.");
 	std::vector< PortalEntry > portal_meshes;
 	read_chunk(file, "prt0", &portal_meshes);
+
+	struct ButtonEntry {
+		uint32_t transform;
+		uint32_t name_begin;
+		uint32_t name_end;
+	};
+	static_assert(sizeof(ButtonEntry) == 4 + 4 + 4, "ButtonEntry is packed.");
+	std::vector< ButtonEntry > button_meshes;
+	read_chunk(file, "btn0", &button_meshes);
 
 	struct MeshEntry {
 		uint32_t transform;
@@ -551,6 +561,21 @@ void Scene::load(std::string const &filename,
 		}
 	}
 
+	for (auto const &b : button_meshes) {
+		if (b.transform >= hierarchy_transforms.size()) {
+			throw std::runtime_error("scene file '" + filename + "' contains button entry with invalid transform index (" + std::to_string(b.transform) + ")");
+		}
+		if (!(b.name_begin <= b.name_end && b.name_end <= names.size())) {
+			throw std::runtime_error("scene file '" + filename + "' contains button entry with invalid name indices");
+		}
+		std::string name = std::string(names.begin() + b.name_begin, names.begin() + b.name_end);
+		
+		if (on_button) {
+			on_button(*this, hierarchy_transforms[b.transform], name);
+		}
+
+	}
+
 	for (auto const &m : meshes) {
 		if (m.transform >= hierarchy_transforms.size()) {
 			throw std::runtime_error("scene file '" + filename + "' contains mesh entry with invalid transform index (" + std::to_string(m.transform) + ")");
@@ -618,8 +643,9 @@ void Scene::load(std::string const &filename,
 //-------------------------
 
 Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal) {
-	load(filename, on_drawable, on_portal);
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal, 
+	std::function< void(Scene &, Transform *, std::string const &) > const &on_button) {
+	load(filename, on_drawable, on_portal, on_button);
 }
 
 Scene::Scene(Scene const &other) {
@@ -688,5 +714,11 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	portals = other.portals;
 	for (auto &p : portals) {
 		p.second->drawable->transform = transform_to_transform.at(p.second->drawable->transform);
+	}
+
+	//copy other's buttons
+	buttons = other.buttons;
+	for (auto &b : buttons) {
+		b.transform = transform_to_transform.at(b.transform);
 	}
 }

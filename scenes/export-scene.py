@@ -61,6 +61,7 @@ else:
 strings_data = b""
 xfh_data = b""
 portal_data = b""
+button_data = b""
 mesh_data = b""
 camera_data = b""
 lamp_data = b""
@@ -130,8 +131,17 @@ def write_portal(obj):
     portal_data += write_string(obj.data.name) #mesh name
     dest_name = "" if obj.portal_data.dest == None else obj.portal_data.dest.name
     portal_data += write_string(dest_name) #dest name
-    portal_data += write_string(obj.portal_data.walk_mesh.name) #dest name
-    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + dest_name + " / " + obj.portal_data.walk_mesh.name)
+    portal_data += write_string(obj.portal_data.walk_mesh.data.name) #dest name
+    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + dest_name + " / " + obj.portal_data.walk_mesh.data.name)
+
+#write_button just gets a button so we can easily set up bounding box collider later:
+def write_button(obj):
+    global button_data
+    assert(obj.type == 'MESH' and obj.portal_data.is_button)
+    button_data += write_xfh(obj) #hierarchy reference
+    button_data += write_string(obj.data.name) #mesh name
+    print("button: " + parent_names() + obj.name + " / " + obj.data.name)
+
 
 #write_mesh will add an object to the mesh section:
 def write_mesh(obj):
@@ -212,6 +222,9 @@ def write_objects(from_collection):
         if obj.type == 'MESH':
             if obj.portal_data.is_portal:
                 write_portal(obj)
+            elif obj.portal_data.is_button:
+                write_button(obj)
+                write_mesh(obj)
             else:
                 write_mesh(obj)
         elif obj.type == 'CAMERA':
@@ -240,6 +253,7 @@ def write_chunk(magic, data):
 write_chunk(b'str0', strings_data)
 write_chunk(b'xfh0', xfh_data)
 write_chunk(b'prt0', portal_data)
+write_chunk(b'btn0', button_data)
 write_chunk(b'msh0', mesh_data)
 write_chunk(b'cam0', camera_data)
 write_chunk(b'lmp0', lamp_data)

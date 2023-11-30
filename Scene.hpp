@@ -154,12 +154,25 @@ struct Scene {
 		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
 	};
 
+	struct Button {
+		Button() {}
+		Button(Transform *transform_, glm::vec3 min, glm::vec3 max, std::string name_) : transform(transform_), box(min, max), name(name_) {}
+		Button(Transform *transform_, glm::vec3 min, glm::vec3 max, std::string name_, std::function<void()> on_pressed_) : transform(transform_), box(min, max), name(name_), on_pressed(on_pressed_) {}
+		~Button() {}
+		Transform *transform = nullptr;
+		BoxCollider box;
+		std::string name;
+		bool active = true;
+		std::function<void()> on_pressed = {};
+	};
+
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
 	std::unordered_map< std::string, std::list< Drawable >> drawable_collections;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 	std::unordered_map<std::string, Portal*> portals;
+	std::list< Button > buttons;
 
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
 	void draw(Camera const &camera) const;
@@ -227,7 +240,8 @@ struct Scene {
 	// throws on file format errors
 	void load(std::string const &filename,
 		std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable = nullptr,
-		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal = nullptr
+		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal = nullptr,
+		std::function< void(Scene &, Transform *, std::string const &) > const &on_button = nullptr
 	);
 
 	//this function is called to read extra chunks from the scene file after the main chunks are read:
@@ -239,7 +253,8 @@ struct Scene {
 
 	//load a scene:
 	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal);
+		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal, 
+		std::function< void(Scene &, Transform *, std::string const &) > const &on_button);
 
 	//copy a scene (with proper pointer fixup):
 	Scene(Scene const &); //...as a constructor

@@ -32,7 +32,7 @@ struct PlayMode : Mode {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
 		uint8_t last_pressed = 0; //useful for only doing things once on press / release
-	} left, right, down, up, space, debug_menu, up_arrow, down_arrow;
+	} left, right, down, up, shift, click, space, debug_menu, up_arrow, down_arrow;
 
 	bool draw_debug = false;
 	float frame_delta = 0;

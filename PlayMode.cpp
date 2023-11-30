@@ -25,12 +25,12 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("level/level.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
-		if (scene.drawable_collections.find("apt") == scene.drawable_collections.end()) {
-			scene.drawable_collections["apt"] = std::list<Scene::Drawable>();
+		if (scene.drawable_collections.find("lvl") == scene.drawable_collections.end()) {
+			scene.drawable_collections["lvl"] = std::list<Scene::Drawable>();
 		}
 
-		scene.drawable_collections["apt"].emplace_back(transform);
-		Scene::Drawable &drawable = scene.drawable_collections["apt"].back();
+		scene.drawable_collections["lvl"].emplace_back(transform);
+		Scene::Drawable &drawable = scene.drawable_collections["lvl"].back();
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
@@ -82,6 +82,9 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 			}
 		}
 
+	}, [&](Scene &scene, Scene::Transform *transform, std::string const &button_name){
+		Mesh const &mesh = level_meshes->lookup(button_name);
+		scene.buttons.emplace_back(transform, mesh.min, mesh.max, button_name);
 	});
 });
 
@@ -136,6 +139,13 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	//scene.portals["Portal1"]->dest = nullptr;
 
 
+	//Button scripting
+	for (auto &b : scene.buttons) {
+		if (b.name == "FridgeDoor") {
+			//b.on_pressed = open_fridge();
+		}
+	}
+
 
 	//Screen Shader and quad Initialization
 	Shader screenShader(data_path("shaders/screen.vs"), data_path("shaders/screen.fs"));
@@ -178,6 +188,10 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			down.downs += 1;
 			down.pressed = true;
 			return true;
+		} else if (evt.key.keysym.sym == SDLK_LSHIFT) {
+			shift.downs += 1;
+			shift.pressed = true;
+			return true;
 		} else if (evt.key.keysym.sym == SDLK_SPACE) {
 			space.downs += 1;
 			space.pressed = true;
@@ -208,6 +222,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			down.pressed = false;
 			return true;
+		} else if (evt.key.keysym.sym == SDLK_LSHIFT) {
+			shift.pressed = false;
+			return true;
 		} else if (evt.key.keysym.sym == SDLK_SPACE) {
 			space.pressed = false;
 			return true;
@@ -224,6 +241,17 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
+			return true;
+		} else {
+			if (evt.button.button == SDL_BUTTON_LEFT) {
+				click.downs += 1;
+				click.pressed = true;
+				return true;
+			}
+		}
+	} else if (evt.type == SDL_MOUSEBUTTONUP) {
+		if (evt.button.button == SDL_BUTTON_LEFT) {
+			click.pressed = false;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
@@ -267,11 +295,50 @@ void PlayMode::update(float elapsed) {
 		}
 	}
 
+	//interaction
+	constexpr float PlayerInteractRange = 1.5f;
+	if (click.pressed && !click.last_pressed) {
+
+		// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
+		glm::mat4 const &cam_to_world = player.camera->transform->make_local_to_world();
+		glm::vec4 const &cam_invdir = glm::vec4(glm::vec3(1.0f / -cam_to_world[2]), 0);
+		glm::vec4 const &cam_origin = cam_to_world[3];
+		auto bbox_hit = [&PlayerInteractRange](Scene::BoxCollider box, glm::vec3 invdir, glm::vec3 ray_origin){
+
+			float t1 = (box.min.x - ray_origin.x)*invdir.x;
+			float t2 = (box.max.x - ray_origin.x)*invdir.x;
+			float t3 = (box.min.y - ray_origin.y)*invdir.y;
+			float t4 = (box.max.y - ray_origin.y)*invdir.y;
+			float t5 = (box.min.z - ray_origin.z)*invdir.z;
+			float t6 = (box.max.z - ray_origin.z)*invdir.z;
+
+			float tmin = glm::max(glm::max(glm::min(t1,t2), glm::min(t3,t4)), glm::min(t5,t6));
+			float tmax = glm::min(glm::min(glm::max(t1,t2), glm::max(t3,t4)), glm::max(t5,t6));
+
+			std::cout << tmin << ", " << tmax << "\n";
+			if (tmax < 0) return false;
+			if (tmin > tmax) return false;
+			if (tmin > PlayerInteractRange) return false;
+
+			return true;
+		};
+
+		for (auto &b : scene.buttons) {
+			if (!b.active) continue;
+			glm::mat4x3 const &b_to_local = b.transform->make_world_to_local();
+			if (bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin)) {
+				if (b.on_pressed) b.on_pressed();
+				break;
+			}
+		}
+	}
+
 
 	//player walking:
 	if (!player.animation_lock_move) {
 		//combine inputs into a move:
 		constexpr float PlayerSpeed = 5.0f;
+		constexpr float PlayerSprintSpeed = 8.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !right.pressed) move.x =-1.0f;
 		if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -279,7 +346,8 @@ void PlayMode::update(float elapsed) {
 		if (!down.pressed && up.pressed) move.y = 1.0f;
 
 		//make it so that moving diagonally doesn't go faster:
-		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
+		if (move != glm::vec2(0.0f)) move = shift.pressed ? 
+			glm::normalize(move) * PlayerSprintSpeed * elapsed : glm::normalize(move) * PlayerSpeed * elapsed;
 
 		//get move in world coordinate system:
 		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
@@ -371,26 +439,33 @@ void PlayMode::update(float elapsed) {
 		scene.default_draw_recursion_max -= 1;
 		std::cout << "Max draw recursion lvl: " << scene.default_draw_recursion_max << "\n";
 	}
-	
-	//reset button press counters:
-	left.downs = 0;
-	right.downs = 0;
-	up.downs = 0;
-	down.downs = 0;
-	space.downs = 0;
-	debug_menu.downs = 0;
-	up_arrow.downs = 0;
-	down_arrow.downs = 0;
 
-	//and adjust last_pressed:
-	left.last_pressed = left.pressed;
-	right.last_pressed = right.pressed;
-	up.last_pressed = up.pressed;
-	down.last_pressed = down.pressed;
-	space.last_pressed = space.pressed;
-	debug_menu.last_pressed = debug_menu.pressed;
-	up_arrow.last_pressed = up_arrow.pressed;
-	down_arrow.last_pressed = down_arrow.pressed;
+	//button cleanup
+	{
+		//reset button press counters:
+		left.downs = 0;
+		right.downs = 0;
+		up.downs = 0;
+		down.downs = 0;
+		shift.downs = 0;
+		click.downs = 0;
+		space.downs = 0;
+		debug_menu.downs = 0;
+		up_arrow.downs = 0;
+		down_arrow.downs = 0;
+
+		//and adjust last_pressed:
+		left.last_pressed = left.pressed;
+		right.last_pressed = right.pressed;
+		up.last_pressed = up.pressed;
+		down.last_pressed = down.pressed;
+		shift.last_pressed = shift.pressed;
+		click.last_pressed = click.pressed;
+		space.last_pressed = space.pressed;
+		debug_menu.last_pressed = debug_menu.pressed;
+		up_arrow.last_pressed = up_arrow.pressed;
+		down_arrow.last_pressed = down_arrow.pressed;
+	}
 
 	handle_portals();
 }
@@ -485,7 +560,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
 	glUseProgram(0);
 
-	glClearColor(0.5f, 0.7f, 0.9f, 1.0f);
+	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
 	glClearDepth(1.0f); //1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
