@@ -7,6 +7,8 @@ uniform sampler2D screenTexture;
 uniform sampler2D normalTexture;
 uniform sampler2D depthTexture;
 
+
+
 //https://gist.github.com/Hebali/6ebfc66106459aacee6a9fac029d0115
 
 uniform int width;
@@ -74,8 +76,10 @@ void main()
     float ourSobelMax = max(ourSobel.r, max(ourSobel.g, ourSobel.b));
 	float sobel_threshold = 0.0015f;
 	FragColor = (depth_sobel.x > sobel_threshold || ourSobelMax > 0.5)? vec4(1, 0.6, 0.6, 1.0) : vec4(col, 0);
+	//FragColor = mix(vec4(col, 0.0), vec4(1), ourSobel);
 
-    //FragColor = vec4(col, 1.0);//color
+    //FragColor = vec4(col, 1.0);
     //FragColor = vec4(normal, 1.0);//normal
-    FragColor = vec4(vec3(LinearizeDepth(depth)), 1.0);//depth
+    
+    //FragColor = vec4(vec3(LinearizeDepth(depth)), 1.0);//depth
 } 

@@ -61,6 +61,7 @@ struct PlayMode : Mode {
 	unsigned int textureNormalbuffer;
 	unsigned int textureDepthbuffer;
 	unsigned int depthbuffer;
+    //unsigned int stencilbuffer;
 	unsigned int screenShaderID;
 	unsigned int quadVAO, quadVBO;
 	float quadVertices[24] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
@@ -111,6 +112,11 @@ struct PlayMode : Mode {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthbuffer, 0);
 
+        // //create a stencil attachment texture
+        // glGenTextures(1, &stencilbuffer);
+        // glBindTexture(GL_TEXTURE_2D, stencilbuffer);
+        // glTexImage2D(GL_TEXTURE_2D, 0, GL_STENCIL_INDEX, drawable_size.x, drawable_size.y, 0, GL_STENCIL_INDEX, GL_UNSIGNED_INT, NULL);
+        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, stencilbuffer, 0);
 
 		// now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
