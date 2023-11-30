@@ -60,7 +60,7 @@ struct PlayMode : Mode {
 	unsigned int textureColorbuffer;
 	unsigned int textureNormalbuffer;
 	unsigned int textureDepthbuffer;
-	unsigned int depthbuffer;
+	unsigned int depth_stencil_buffer;
     //unsigned int stencilbuffer;
 	unsigned int screenShaderID;
 	unsigned int quadVAO, quadVBO;
@@ -94,7 +94,7 @@ struct PlayMode : Mode {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureNormalbuffer, 0);
 
-		// create a normal attachment texture
+		// create a depth attachment texture
 		glGenTextures(1, &textureDepthbuffer);
 		glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, drawable_size.x, drawable_size.y, 0, GL_RED, GL_FLOAT, NULL);
@@ -102,15 +102,16 @@ struct PlayMode : Mode {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textureDepthbuffer, 0);
 
-		//create a depth attachment texture
-		glGenTextures(1, &depthbuffer);
-		glBindTexture(GL_TEXTURE_2D, depthbuffer);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, drawable_size.x, drawable_size.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		//create a depth_stencil attachment texture
+		glGenTextures(1, &depth_stencil_buffer);
+		glBindTexture(GL_TEXTURE_2D, depth_stencil_buffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, drawable_size.x, drawable_size.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, drawable_size.x, drawable_size.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthbuffer, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth_stencil_buffer, 0); 
 
         // //create a stencil attachment texture
         // glGenTextures(1, &stencilbuffer);
