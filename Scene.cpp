@@ -126,7 +126,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		if (name == p->drawable->transform->name) continue;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
-		if (p->drawable->transform->name == "Portal0" && !is_portal_visible(world_to_clip, *p)) continue;
+		if (!is_portal_visible(world_to_clip, *p)) continue;
 
 		glm::vec4 const &p_clip_plane = p->get_clipping_plane(cam_transform.position);
 
@@ -378,38 +378,51 @@ bool Scene::is_portal_visible(glm::mat4 const &world_to_clip, Portal const &port
 	glm::mat4 const &portal_to_clip = world_to_clip * glm::mat4(portal.drawable->transform->make_local_to_world());
 
 	if (portal_to_clip[3][3] == 0) return false;
+	// https://bruop.github.io/frustum_culling/
 
-	// Convert portal space bbox to clip space bbox
-	// Not sure if there's a faster way to do this compatible with non-uniform scaling
-
-	// Get all verts of stretched bbox (in normalized device coordinates)
-	glm::vec3 const transformed[8] = {
-		(portal_to_clip * glm::vec4(portal.box.min, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.min.x, portal.box.min.y, portal.box.max.z, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.min.z, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.max.z, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.min.z, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.max.z, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.max.x, portal.box.max.y, portal.box.min.z, 1)) / portal_to_clip[3][3], 
-		(portal_to_clip * glm::vec4(portal.box.max, 1)) / portal_to_clip[3][3]
+	// Get all verts of bbox, in clip space
+	glm::vec4 const vertices[8] = {
+		portal_to_clip * glm::vec4(portal.box.min, 1), 
+		portal_to_clip * glm::vec4(portal.box.min.x, portal.box.min.y, portal.box.max.z, 1), 
+		portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.min.z, 1), 
+		portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.max.z, 1), 
+		portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.min.z, 1), 
+		portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.max.z, 1), 
+		portal_to_clip * glm::vec4(portal.box.max.x, portal.box.max.y, portal.box.min.z, 1), 
+		portal_to_clip * glm::vec4(portal.box.max, 1)
 	};
 
-	// Find min and max
-	glm::vec2 min = transformed[0];
-	glm::vec2 max = transformed[0];
-	for (auto const &point : transformed) {
-		min.x = glm::min(min.x, point.x);
-		min.y = glm::min(min.y, point.y);
-
-		max.x = glm::max(max.x, point.x);
-		max.y = glm::max(max.y, point.y);
+	// Check if all verts lie outside any one plane
+	bool outside_plane = true;
+	// x, y
+	for (uint8_t i = 0; i < 2; i++) {
+		for (auto const &vert : vertices) {
+			if (-vert.w <= vert[i]) {
+				outside_plane = false;
+				break;
+			}
+		}
+		if (outside_plane) {
+			return false;
+		}
+		for (auto const &vert : vertices) {
+			if (vert.w >= vert[i]) {
+				outside_plane = false;
+				break;
+			}
+		}
+		if (outside_plane) {
+			return false;
+		}
+	}
+	// z
+	for (auto const &vert : vertices) {
+		if (0 <= vert.w) {
+			return true;
+		}
 	}
 
-	std::cout << portal_to_clip[3][3] << ";  " << min.x << ", " << min.y << ";  " << 
-				max.x << ", " << max.y << "\n";
-
-	return (min.x <= 1 && max.x >= -1) &&
-		   (min.y <= 1 && max.y >= -1);
+	return false;
 }
 
 void Scene::load(std::string const &filename,
