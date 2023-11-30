@@ -131,6 +131,17 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 
 	//scene.portals["Portal1"]->dest = nullptr;
 
+
+
+	//Screen Shader and quad Initialization
+	Shader screenShader(data_path("shaders/screen.vs"), data_path("shaders/screen.fs"));
+	screenShader.use();
+	screenShader.setInt("screenTexture", 0);
+	screenShader.setInt("normalTexture", 1);
+	screenShader.setInt("depthTexture", 2);
+	screenShaderID = screenShader.ID;
+	InitQuadBuffers();
+
 }
 
 PlayMode::~PlayMode() {
@@ -405,8 +416,23 @@ void PlayMode::handle_portals() {
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
+	//need to resize framebuffer if drawable size changes:
+	if(drawable_size.x != drawableSize.x || drawable_size.y != drawableSize.y){
+		drawableSize = drawable_size;
+		InitFrameBuffer(drawableSize);
+	}
+
 	//update camera aspect ratio for drawable:
 	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);;
+
+	//Start writing to framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+	//glDisable(GL_ALPHA_TEST);
+	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+	glDrawBuffers(3, drawBuffers);
 
 	//set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
@@ -438,6 +464,27 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		}
 	}
 	*/
+
+	// 2nd Pass(Only render the screen space quad)
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
+	//glEnable(GL_ALPHA_TEST);
+	// clear all relevant buffers
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glUseProgram(screenShaderID);
+	glUniform1i(glGetUniformLocation(screenShaderID, "width"), drawable_size.x);
+	glUniform1i(glGetUniformLocation(screenShaderID, "height"), drawable_size.y);
+
+	glBindVertexArray(quadVAO);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, textureNormalbuffer);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	{ //use DrawLines to overlay some text:
 		glDisable(GL_DEPTH_TEST);
