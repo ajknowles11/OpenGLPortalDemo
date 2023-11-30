@@ -132,7 +132,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glDepthMask(GL_TRUE);
+		glDepthMask(GL_FALSE);
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
