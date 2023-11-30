@@ -267,8 +267,10 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 }
 
 void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool const &use_clip, glm::vec4 const &clip_plane) const {
-	for (auto const &drawable : drawables) {
-		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
+	for (auto const &drawables : drawable_collections) {
+		for (auto const &drawable : drawables.second) {
+			draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
+		}
 	}
 }
 
@@ -660,10 +662,14 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	}
 
 	//copy other's drawables, updating transform pointers:
-	drawables = other.drawables;
-	for (auto &d : other.drawables) {
-		drawables.emplace_back(transform_to_transform.at(d.transform));
-		drawables.back().pipeline = d.pipeline;
+	drawable_collections = other.drawable_collections;
+	for (auto &drawables : other.drawable_collections) {
+		std::list<Drawable> new_list;
+		for (auto &d : drawables.second) {
+			new_list.emplace_back(transform_to_transform.at(d.transform));
+			new_list.back().pipeline = d.pipeline;
+		}
+		drawable_collections.emplace(drawables.first, new_list);
 	}
 
 	//copy other's cameras, updating transform pointers:

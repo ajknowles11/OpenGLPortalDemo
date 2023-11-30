@@ -14,35 +14,39 @@
 
 #include <random>
 
-GLuint basic_meshes_for_lit_color_texture_program = 0;
-Load< MeshBuffer > apartment_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("level/apartment.pnct"));
-	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+GLuint meshes_for_lit_color_texture_program = 0;
+Load< MeshBuffer > level_meshes(LoadTagDefault, []() -> MeshBuffer const * {
+	MeshBuffer const *ret = new MeshBuffer(data_path("level/level.pnct"));
+	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
-Load< Scene > apartment_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("level/apartment.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
-		Mesh const &mesh = apartment_meshes->lookup(mesh_name);
+Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
+	return new Scene(data_path("level/level.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
-		scene.drawables.emplace_back(transform);
-		Scene::Drawable &drawable = scene.drawables.back();
+		if (scene.drawable_collections.find("apt") == scene.drawable_collections.end()) {
+			scene.drawable_collections["apt"] = std::list<Scene::Drawable>();
+		}
+
+		scene.drawable_collections["apt"].emplace_back(transform);
+		Scene::Drawable &drawable = scene.drawable_collections["apt"].back();
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
-		drawable.pipeline.vao = basic_meshes_for_lit_color_texture_program;
+		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
 
 	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name){
-		Mesh const &mesh = apartment_meshes->lookup(mesh_name);
+		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
 
 		drawable->pipeline = lit_color_texture_program_pipeline;
 
-		drawable->pipeline.vao = basic_meshes_for_lit_color_texture_program;
+		drawable->pipeline.vao = meshes_for_lit_color_texture_program;
 		drawable->pipeline.type = mesh.type;
 		drawable->pipeline.start = mesh.start;
 		drawable->pipeline.count = mesh.count;
@@ -82,7 +86,7 @@ Load< Scene > apartment_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("level/apartment.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("level/walkmeshes.w"));
 	return ret;
 });
 
@@ -90,7 +94,7 @@ Load< Scene::FullTriProgram > full_tri_program(LoadTagEarly, []() -> Scene::Full
 	return new Scene::FullTriProgram();
 });
 
-PlayMode::PlayMode() : scene(*apartment_scene) {
+PlayMode::PlayMode() : scene(*level_scene) {
 	scene.full_tri_program = *full_tri_program;
 
 	//create a player transform:
@@ -248,6 +252,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 void PlayMode::update(float elapsed) {
 	//used for intro
 	if (player.fall_to_walkmesh) {
+		player.velocity.x = 0;
+		player.velocity.y = 0;
 		player.velocity.z -= player.gravity * elapsed;
 		glm::vec3 new_pos = player.transform->position + player.velocity * elapsed;
 		WalkPoint nearest_walk_point = walkmesh->nearest_walk_point(player.transform->position);
@@ -422,8 +428,9 @@ void PlayMode::handle_portals() {
 			// SPECIAL CASES ----------------------------
 
 			if (p == scene.portals["PortalFridge"]) {
-				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - 1.8f;
+				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 0, 1.8f, 0);
 				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
+				player.velocity.z = 0;
 				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
 				walkmesh = walkmesh_map[p->dest->on_walkmesh];
 				player.uses_walkmesh = false;

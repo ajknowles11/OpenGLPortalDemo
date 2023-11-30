@@ -156,7 +156,7 @@ struct Scene {
 
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
-	std::list< Drawable > drawables;
+	std::unordered_map< std::string, std::list< Drawable >> drawable_collections;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 	std::unordered_map<std::string, Portal*> portals;

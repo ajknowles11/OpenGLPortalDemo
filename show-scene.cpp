@@ -111,8 +111,12 @@ int main(int argc, char **argv) {
 				if (!buffer_vao) return;
 				Mesh const &mesh = buffer->lookup(mesh_name);
 
-				scene.drawables.emplace_back(transform);
-				Scene::Drawable &drawable = scene.drawables.back();
+				if (scene.drawable_collections.find("show_scene") == scene.drawable_collections.end()) {
+					scene.drawable_collections["show_scene"] = std::list<Scene::Drawable>();
+				}
+
+				scene.drawable_collections["show_scene"].emplace_back(transform);
+				Scene::Drawable &drawable = scene.drawable_collections["show_scene"].back();
 
 				drawable.pipeline = show_scene_program_pipeline;
 
