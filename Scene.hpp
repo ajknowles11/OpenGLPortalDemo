@@ -215,6 +215,9 @@ struct Scene {
 
 	} full_tri_program;
 
+	// Test if portal is visible in view frustum
+	bool is_portal_visible(glm::mat4 const &world_to_clip, Portal const &portal) const;
+
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:
 	// throws on file format errors

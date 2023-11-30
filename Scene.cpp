@@ -126,6 +126,10 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		if (name == p->drawable->transform->name) continue;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
+		if (p->drawable->transform->name == "Portal0" && !is_portal_visible(world_to_clip, *p)) continue;
+
+		glm::vec4 const &p_clip_plane = p->get_clipping_plane(cam_transform.position);
+
 		// Disable color and depth drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glDepthMask(GL_TRUE);
@@ -150,7 +154,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilMask(0xFF);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p_clip_plane);
 
 		// Enable color and enable depth drawing
 		// (We enable color because draw_fullscreen_tri will also set the inside of portal to the clear color)
@@ -222,7 +226,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glDepthRange(0, 1);
 		
 		// Draw portal into depth buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p_clip_plane);
 
 		// Disable depth drawing and test
 		glDisable(GL_DEPTH_TEST);
@@ -242,7 +246,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p->get_clipping_plane(cam_transform.position));
+		draw_one(*p->drawable, world_to_clip, world_to_light, true, p_clip_plane);
 	}
 
 	// Draw at stencil >= recursionlevel
@@ -368,6 +372,44 @@ void Scene::draw_fullscreen_tri() const {
 	glBindVertexArray(0);
 
 	GL_ERRORS();
+}
+
+bool Scene::is_portal_visible(glm::mat4 const &world_to_clip, Portal const &portal) const {
+	glm::mat4 const &portal_to_clip = world_to_clip * glm::mat4(portal.drawable->transform->make_local_to_world());
+
+	if (portal_to_clip[3][3] == 0) return false;
+
+	// Convert portal space bbox to clip space bbox
+	// Not sure if there's a faster way to do this compatible with non-uniform scaling
+
+	// Get all verts of stretched bbox (in normalized device coordinates)
+	glm::vec3 const transformed[8] = {
+		(portal_to_clip * glm::vec4(portal.box.min, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.min.x, portal.box.min.y, portal.box.max.z, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.min.z, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.max.z, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.min.z, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.max.z, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.max.x, portal.box.max.y, portal.box.min.z, 1)) / portal_to_clip[3][3], 
+		(portal_to_clip * glm::vec4(portal.box.max, 1)) / portal_to_clip[3][3]
+	};
+
+	// Find min and max
+	glm::vec2 min = transformed[0];
+	glm::vec2 max = transformed[0];
+	for (auto const &point : transformed) {
+		min.x = glm::min(min.x, point.x);
+		min.y = glm::min(min.y, point.y);
+
+		max.x = glm::max(max.x, point.x);
+		max.y = glm::max(max.y, point.y);
+	}
+
+	std::cout << portal_to_clip[3][3] << ";  " << min.x << ", " << min.y << ";  " << 
+				max.x << ", " << max.y << "\n";
+
+	return (min.x <= 1 && max.x >= -1) &&
+		   (min.y <= 1 && max.y >= -1);
 }
 
 void Scene::load(std::string const &filename,
