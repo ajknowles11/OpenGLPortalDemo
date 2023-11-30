@@ -134,7 +134,7 @@ PlayMode::PlayMode() : scene(*basic_scene) {
 
 
 	//Screen Shader and quad Initialization
-	Shader screenShader("shaders/screen.vs", "shaders/screen.fs");
+	Shader screenShader(data_path("shaders/screen.vs"), data_path("shaders/screen.fs"));
 	screenShader.use();
 	screenShader.setInt("screenTexture", 0);
 	screenShader.setInt("normalTexture", 1);
