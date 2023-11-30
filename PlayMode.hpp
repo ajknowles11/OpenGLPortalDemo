@@ -98,6 +98,8 @@ struct PlayMode : Mode {
 
 	//----- Random scripting objects -----
 
+	bool milk_hint = true;
+
 
 	//----- Screen Shader Related -----
 
