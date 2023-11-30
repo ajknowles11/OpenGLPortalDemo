@@ -62,14 +62,18 @@ struct PlayMode : Mode {
 	WalkMesh const *walkmesh = nullptr;
 
 	struct Timer {
+		Timer(float time_, std::function<void(float)> on_tick_ = {}, std::function<void()> on_finish_ = {}, bool auto_start_ = true, bool auto_delete_ = true) :
+			max_acc(time_), on_tick(on_tick_), on_finish(on_finish_), active(auto_start_), auto_delete(auto_delete_) {}
+		~Timer() {}
 		float max_acc = 1;
 		float acc = 0;
-		std::function<void()> on_finish = {};
 		std::function<void(float)> on_tick = {};
+		std::function<void()> on_finish = {};
 		void tick(float elapsed) {
 			acc += elapsed;
 			if (acc > max_acc) {
 				acc = max_acc;
+				active = false;
 				if (on_tick) on_tick(alpha());
 				if (on_finish) on_finish();
 				if (auto_delete) {
@@ -90,7 +94,9 @@ struct PlayMode : Mode {
 		bool queued_for_delete = false;
 	};
 
-	std::vector<Timer> timers;
+	std::vector<Timer> timers = std::vector<Timer>();
+
+	//----- Random scripting objects -----
 
 
 	//----- Screen Shader Related -----

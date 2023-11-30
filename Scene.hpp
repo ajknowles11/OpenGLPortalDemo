@@ -156,10 +156,10 @@ struct Scene {
 
 	struct Button {
 		Button() {}
-		Button(Transform *transform_, glm::vec3 min, glm::vec3 max, std::string name_) : transform(transform_), box(min, max), name(name_) {}
-		Button(Transform *transform_, glm::vec3 min, glm::vec3 max, std::string name_, std::function<void()> on_pressed_) : transform(transform_), box(min, max), name(name_), on_pressed(on_pressed_) {}
+		Button(Drawable *drawable_, glm::vec3 min, glm::vec3 max, std::string name_) : drawable(drawable_), box(min, max), name(name_) {}
+		Button(Drawable *drawable_, glm::vec3 min, glm::vec3 max, std::string name_, std::function<void()> on_pressed_) : drawable(drawable_), box(min, max), name(name_), on_pressed(on_pressed_) {}
 		~Button() {}
-		Transform *transform = nullptr;
+		Drawable *drawable = nullptr;
 		BoxCollider box;
 		std::string name;
 		bool active = true;
@@ -168,11 +168,11 @@ struct Scene {
 
 	//Scenes, of course, may have many of the above objects:
 	std::list< Transform > transforms;
-	std::unordered_map< std::string, std::list< Drawable >> drawable_collections;
+	std::list< Drawable > drawables;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
 	std::unordered_map<std::string, Portal*> portals;
-	std::list< Button > buttons;
+	std::vector< Button > buttons;
 
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
 	void draw(Camera const &camera) const;

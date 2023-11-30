@@ -224,7 +224,6 @@ def write_objects(from_collection):
                 write_portal(obj)
             elif obj.portal_data.is_button:
                 write_button(obj)
-                write_mesh(obj)
             else:
                 write_mesh(obj)
         elif obj.type == 'CAMERA':

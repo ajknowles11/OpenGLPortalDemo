@@ -267,10 +267,8 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 }
 
 void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool const &use_clip, glm::vec4 const &clip_plane) const {
-	for (auto const &drawables : drawable_collections) {
-		for (auto const &drawable : drawables.second) {
-			draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
-		}
+	for (auto const &drawable : drawables) {
+		draw_one(drawable, world_to_clip, world_to_light, use_clip, clip_plane);
 	}
 }
 
@@ -561,21 +559,6 @@ void Scene::load(std::string const &filename,
 		}
 	}
 
-	for (auto const &b : button_meshes) {
-		if (b.transform >= hierarchy_transforms.size()) {
-			throw std::runtime_error("scene file '" + filename + "' contains button entry with invalid transform index (" + std::to_string(b.transform) + ")");
-		}
-		if (!(b.name_begin <= b.name_end && b.name_end <= names.size())) {
-			throw std::runtime_error("scene file '" + filename + "' contains button entry with invalid name indices");
-		}
-		std::string name = std::string(names.begin() + b.name_begin, names.begin() + b.name_end);
-		
-		if (on_button) {
-			on_button(*this, hierarchy_transforms[b.transform], name);
-		}
-
-	}
-
 	for (auto const &m : meshes) {
 		if (m.transform >= hierarchy_transforms.size()) {
 			throw std::runtime_error("scene file '" + filename + "' contains mesh entry with invalid transform index (" + std::to_string(m.transform) + ")");
@@ -587,6 +570,21 @@ void Scene::load(std::string const &filename,
 
 		if (on_drawable) {
 			on_drawable(*this, hierarchy_transforms[m.transform], name);
+		}
+
+	}
+
+	for (auto const &b : button_meshes) {
+		if (b.transform >= hierarchy_transforms.size()) {
+			throw std::runtime_error("scene file '" + filename + "' contains button entry with invalid transform index (" + std::to_string(b.transform) + ")");
+		}
+		if (!(b.name_begin <= b.name_end && b.name_end <= names.size())) {
+			throw std::runtime_error("scene file '" + filename + "' contains button entry with invalid name indices");
+		}
+		std::string name = std::string(names.begin() + b.name_begin, names.begin() + b.name_end);
+
+		if (on_button) {
+			on_button(*this, hierarchy_transforms[b.transform], name);
 		}
 
 	}
@@ -688,14 +686,10 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	}
 
 	//copy other's drawables, updating transform pointers:
-	drawable_collections = other.drawable_collections;
-	for (auto &drawables : other.drawable_collections) {
-		std::list<Drawable> new_list;
-		for (auto &d : drawables.second) {
-			new_list.emplace_back(transform_to_transform.at(d.transform));
-			new_list.back().pipeline = d.pipeline;
-		}
-		drawable_collections.emplace(drawables.first, new_list);
+	drawables = std::list<Scene::Drawable>();
+	for (auto &d : other.drawables) {
+		drawables.emplace_back(transform_to_transform.at(d.transform));
+		drawables.back().pipeline = d.pipeline;
 	}
 
 	//copy other's cameras, updating transform pointers:
@@ -719,6 +713,6 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	//copy other's buttons
 	buttons = other.buttons;
 	for (auto &b : buttons) {
-		b.transform = transform_to_transform.at(b.transform);
+		b.drawable->transform = transform_to_transform.at(b.drawable->transform);
 	}
 }

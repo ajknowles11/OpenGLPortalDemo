@@ -25,12 +25,8 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 	return new Scene(data_path("level/level.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
-		if (scene.drawable_collections.find("lvl") == scene.drawable_collections.end()) {
-			scene.drawable_collections["lvl"] = std::list<Scene::Drawable>();
-		}
-
-		scene.drawable_collections["lvl"].emplace_back(transform);
-		Scene::Drawable &drawable = scene.drawable_collections["lvl"].back();
+		scene.drawables.emplace_back(transform);
+		Scene::Drawable &drawable = scene.drawables.back();
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
@@ -84,7 +80,18 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 
 	}, [&](Scene &scene, Scene::Transform *transform, std::string const &button_name){
 		Mesh const &mesh = level_meshes->lookup(button_name);
-		scene.buttons.emplace_back(transform, mesh.min, mesh.max, button_name);
+
+		scene.drawables.emplace_back(transform);
+		Scene::Drawable &drawable = scene.drawables.back();
+
+		drawable.pipeline = lit_color_texture_program_pipeline;
+
+		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		drawable.pipeline.type = mesh.type;
+		drawable.pipeline.start = mesh.start;
+		drawable.pipeline.count = mesh.count;
+
+		scene.buttons.emplace_back(&drawable, mesh.min, mesh.max, button_name);
 	});
 });
 
@@ -137,12 +144,35 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	}
 
 	//scene.portals["Portal1"]->dest = nullptr;
-
+	
 
 	//Button scripting
 	for (auto &b : scene.buttons) {
 		if (b.name == "FridgeDoor") {
-			//b.on_pressed = open_fridge();
+			b.on_pressed = [&](){
+				b.active = false;
+				player.animation_lock_move = true;
+				player.animation_lock_look = true;
+				player.uses_walkmesh = false;
+				glm::vec3 const &start_pos = player.transform->position;
+				timers.emplace_back(0.8f, [&](float alpha){
+						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
+						player.transform->position = glm::mix(start_pos, target, alpha);
+						player.transform->rotation = glm::lerp(player.transform->rotation, glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1)), alpha);
+						player.camera->transform->rotation = glm::lerp(player.camera->transform->rotation, glm::angleAxis(1.1f * glm::radians(90.0f), glm::vec3(1,0,0)), alpha);
+						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
+					}, [&](){
+						timers.emplace_back(0.4f, [&](float alpha){
+							glm::vec3 const &start = glm::vec3(-4.5f, 0.5f, -0.2f);
+							glm::vec3 const &end = glm::vec3(-4.5f, -1.8f, -0.2f);
+							if (!player.fall_to_walkmesh) player.transform->position = glm::mix(start, end, alpha);
+						}, [&](){
+							player.animation_lock_look = false;
+							player.animation_lock_move = false;
+						});
+					
+				});
+			};
 		}
 	}
 
@@ -315,7 +345,6 @@ void PlayMode::update(float elapsed) {
 			float tmin = glm::max(glm::max(glm::min(t1,t2), glm::min(t3,t4)), glm::min(t5,t6));
 			float tmax = glm::min(glm::min(glm::max(t1,t2), glm::max(t3,t4)), glm::max(t5,t6));
 
-			std::cout << tmin << ", " << tmax << "\n";
 			if (tmax < 0) return false;
 			if (tmin > tmax) return false;
 			if (tmin > PlayerInteractRange) return false;
@@ -325,7 +354,7 @@ void PlayMode::update(float elapsed) {
 
 		for (auto &b : scene.buttons) {
 			if (!b.active) continue;
-			glm::mat4x3 const &b_to_local = b.transform->make_world_to_local();
+			glm::mat4x3 const &b_to_local = b.drawable->transform->make_world_to_local();
 			if (bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin)) {
 				if (b.on_pressed) b.on_pressed();
 				break;
@@ -468,6 +497,12 @@ void PlayMode::update(float elapsed) {
 	}
 
 	handle_portals();
+
+	for (auto &t : timers) {
+		if (t.active) {
+			t.tick(elapsed);
+		}
+	}
 }
 
 void PlayMode::handle_portals() {
@@ -503,9 +538,9 @@ void PlayMode::handle_portals() {
 			// SPECIAL CASES ----------------------------
 
 			if (p == scene.portals["PortalFridge"]) {
-				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 0, 1.8f, 0);
+				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
 				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
-				player.velocity.z = 0;
+				player.velocity.z = -0.4f * player.gravity;
 				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
 				walkmesh = walkmesh_map[p->dest->on_walkmesh];
 				player.uses_walkmesh = false;
