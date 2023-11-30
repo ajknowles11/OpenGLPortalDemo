@@ -143,7 +143,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
-	//scene.portals["Portal1"]->dest = nullptr;
+	scene.portals["HallExit"]->active = false;
 	
 
 	//Button scripting
@@ -172,6 +172,13 @@ PlayMode::PlayMode() : scene(*level_scene) {
 						});
 					
 				});
+			};
+		}
+		else if (b.name == "Lever") {
+			b.on_pressed = [&](){
+				scene.portals["HallExit"]->active = true;
+				b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1,0,0));
+				b.active = false;
 			};
 		}
 	}
@@ -326,7 +333,7 @@ void PlayMode::update(float elapsed) {
 	}
 
 	//interaction
-	constexpr float PlayerInteractRange = 1.5f;
+	constexpr float PlayerInteractRange = 1.7f;
 	if (click.pressed && !click.last_pressed) {
 
 		// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
@@ -344,6 +351,8 @@ void PlayMode::update(float elapsed) {
 
 			float tmin = glm::max(glm::max(glm::min(t1,t2), glm::min(t3,t4)), glm::min(t5,t6));
 			float tmax = glm::min(glm::min(glm::max(t1,t2), glm::max(t3,t4)), glm::max(t5,t6));
+
+			std::cout << tmin << ", " << tmax << "\n";
 
 			if (tmax < 0) return false;
 			if (tmin > tmax) return false;
@@ -536,7 +545,7 @@ void PlayMode::handle_portals() {
 			glm::mat4 const m_reverse = glm::mat4(dest_world) * glm::mat4(p_local);
 
 			// SPECIAL CASES ----------------------------
-
+			bool normal_tp = true;
 			if (p == scene.portals["PortalFridge"]) {
 				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
 				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
@@ -545,14 +554,117 @@ void PlayMode::handle_portals() {
 				walkmesh = walkmesh_map[p->dest->on_walkmesh];
 				player.uses_walkmesh = false;
 				player.fall_to_walkmesh = true;
-				
+				p->active = false;
+				normal_tp = false;
+			}
+			else if (p == scene.portals["StairPortal0"]) {
+				scene.portals["StairPortalA"]->dest = p;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+				scene.portals["StairPortal3"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal0b"];
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+
+			}
+			else if (p == scene.portals["StairPortal1"]) {
+				scene.portals["StairPortalA"]->dest = p;
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+				scene.portals["StairPortal3"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal1b"];
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+			}
+			else if (p == scene.portals["StairPortal2"]) {
+				scene.portals["StairPortalA"]->dest = p;
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal3"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal2b"];
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+			}
+			else if (p == scene.portals["StairPortal3"]) {
+				scene.portals["StairPortalA"]->dest = p;
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal3b"];
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+			}
+			else if (p == scene.portals["StairPortalA"]) {
+				scene.portals["StairPortal0"]->active = true;
+				scene.portals["StairPortal1"]->active = true;
+				scene.portals["StairPortal2"]->active = true;
+				scene.portals["StairPortal3"]->active = true;
+			}
+			else if (p == scene.portals["StairPortal0b"]) {
+				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal0"];
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+				scene.portals["StairPortal3"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = p;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+
+			}
+			else if (p == scene.portals["StairPortal1b"]) {
+				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal1"];
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+				scene.portals["StairPortal3"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = p;
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+			}
+			else if (p == scene.portals["StairPortal2b"]) {
+				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal2"];
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal3"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = p;
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal3b"]->active = false;
+			}
+			else if (p == scene.portals["StairPortal3b"]) {
+				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal3"];
+				scene.portals["StairPortal0"]->active = false;
+				scene.portals["StairPortal1"]->active = false;
+				scene.portals["StairPortal2"]->active = false;
+
+				scene.portals["StairPortalB"]->dest = p;
+				scene.portals["StairPortal0b"]->active = false;
+				scene.portals["StairPortal1b"]->active = false;
+				scene.portals["StairPortal2b"]->active = false;
+			}
+			else if (p == scene.portals["StairPortalB"]) {
+				scene.portals["StairPortal0b"]->active = true;
+				scene.portals["StairPortal1b"]->active = true;
+				scene.portals["StairPortal2b"]->active = true;
+				scene.portals["StairPortal3b"]->active = true;
 			}
 
 
 
 			// normal case below ------------------------
 
-			else {
+			if (normal_tp) {
 				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 				player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
 				p->dest->sleeping = true;
@@ -650,12 +762,12 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse; SPACE to press button",
+		lines.draw_text("Mouse, WASD, shift to run",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse; SPACE to press button",
+		lines.draw_text("Mouse, WASD, shift to run",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
