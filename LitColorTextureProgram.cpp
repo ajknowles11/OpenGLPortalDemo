@@ -62,6 +62,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"out vec3 normal;\n"
 		"out vec4 color;\n"
 		"out vec2 texCoord;\n"
+		"out mat4 PROJECTION_MATRIX;\n"
 		"void main() {\n"
 		"	gl_Position = OBJECT_TO_CLIP * Position;\n"
 		"	position = OBJECT_TO_LIGHT * Position;\n"
@@ -69,6 +70,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"	normal = NORMAL_TO_LIGHT * Normal;\n"
 		"	color = Color;\n"
 		"	texCoord = TexCoord;\n"
+		"	PROJECTION_MATRIX = OBJECT_TO_CLIP;\n"
 		"}\n"
 	,
 		//fragment shader:
@@ -83,9 +85,17 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"in vec3 normal;\n"
 		"in vec4 color;\n"
 		"in vec2 texCoord;\n"
+		"in mat4 PROJECTION_MATRIX;\n"
 		"out vec4 fragColor;\n"
 		"out vec3 outNormal;\n"
 		"out float outDepth;\n"
+		"float near = 0.1;\n"
+		"float far  = 15.0;\n"
+		"float LinearizeDepth(float depth)\n"
+		"{\n"
+		"	float z = depth * 2.0 - 1.0; // back to NDC\n"
+		"	return (2.0 * near * far) / (far + near - z * (far - near));\n"
+		"}\n"
 		"void main() {\n"
 		"	vec3 n = normalize(normal);\n"
 		"	vec3 e;\n"
@@ -117,7 +127,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
 		"	fragColor = color;\n"
 		"	outNormal = n;\n"
-		"	outDepth = gl_FragCoord.z;\n"
+		"	outDepth = LinearizeDepth(gl_FragCoord.z);\n"
 		"}\n"
 	);
 	//As you can see above, adjacent strings in C/C++ are concatenated.

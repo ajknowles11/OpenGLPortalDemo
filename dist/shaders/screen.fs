@@ -30,9 +30,16 @@ void make_kernel(inout vec4 n[9], sampler2D tex, vec2 coord)
 	n[8] = vec4(texture2D(tex, coord + vec2(  w, h)));
 }
 
+bool smoothDepth(vec4 n[9], float threshold){
+	float center = n[4].r;
+	float sum = 0;
+	sum += abs(n[0].r + n[1].r + n[2].r + n[3].r + n[5].r + n[6].r + n[7].r + n[8].r - (8.0 * center));
+	return sum < threshold;
+}
+
 
 float near = 0.1; 
-float far  = 10.0; 
+float far  = 15.0; 
 float LinearizeDepth(float depth) 
 {
     float z = depth * 2.0 - 1.0; // back to NDC 
@@ -56,6 +63,9 @@ void main()
 	vec4 depth_sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
   	vec4 depth_sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
 	vec4 depth_sobel = sqrt((depth_sobel_edge_h * depth_sobel_edge_h) + (depth_sobel_edge_v * depth_sobel_edge_v));
+	bool smoothD = smoothDepth(n, 0.009);
+
+
 
 	make_kernel(n, screenTexture, TexCoords);
 	vec4 color_sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
@@ -74,13 +84,14 @@ void main()
 	1.0);
 
     float ourSobelMax = max(ourSobel.r, max(ourSobel.g, ourSobel.b));
-	float sobel_threshold = 0.0008f;
-	FragColor = (depth_sobel.x > sobel_threshold || ourSobelMax > 0.5)? vec4(vec3(0.1), 1.0) : vec4(1);
-	//FragColor = (normal_sobel.x > 0.5 || depth_sobel.x > sobel_threshold)? vec4(vec3(0.1), 1.0) : vec4(1.0);
+	float depth_threshold = 0.002f;
+	float normal_threshold = 0.1f;
+	FragColor = (normal_sobel.x > normal_threshold || !smoothD && (depth_sobel.x > depth_threshold))? vec4(vec3(0.1), 1.0) : vec4(1);
+	//FragColor = (normal_sobel.x > 0.5 || depth_sobel.x > depth_threshold)? vec4(vec3(0.1), 1.0) : vec4(1.0);
 	//FragColor = mix(vec4(col, 0.0), vec4(1), ourSobel);
 
     //FragColor = vec4(col, 1.0);
     //FragColor = vec4(normal, 1.0);//normal
     
-    //FragColor = vec4(vec3(LinearizeDepth(depth)), 1.0);//depth
+    //FragColor = vec4(vec3(depth), 1.0);//depth
 } 
