@@ -112,6 +112,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	player.transform = &scene.transforms.back();
 	//player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
 	player.transform->position = glm::vec3(3.8, -10.0f, 0.0f);
+	player.transform->rotation = glm::angleAxis(glm::radians(-50.0f), glm::vec3(0,0,1));
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -152,6 +153,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 			b.on_pressed = [&](){
 				//currentShaderID = whiteworldShaderID;
 				b.active = false;
+				milk_hint = false;
 				scene.portals["PortalFridge"]->active = true;
 				scene.portals["Drop0"]->active = true;
 				scene.portals["Drop1"]->active = true;
@@ -373,8 +375,6 @@ void PlayMode::update(float elapsed) {
 
 			float tmin = glm::max(glm::max(glm::min(t1,t2), glm::min(t3,t4)), glm::min(t5,t6));
 			float tmax = glm::min(glm::min(glm::max(t1,t2), glm::max(t3,t4)), glm::max(t5,t6));
-
-			std::cout << tmin << ", " << tmax << "\n";
 
 			if (tmax < 0) return false;
 			if (tmin > tmax) return false;
@@ -711,6 +711,9 @@ void PlayMode::handle_portals() {
 				scene.portals["Drop1"]->active = false;
 				scene.portals["EnterPlayground"]->active = true;
 
+				scene.portals["ground"]->active = true;
+				scene.portals["up"]->active = true;
+
 				scene.default_draw_recursion_max = 2;
 			}
 			else if (p == scene.portals["FunZone"]) {
@@ -839,24 +842,35 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse, WASD, shift to run",
+		lines.draw_text("Mouse, WASD, Shift to run, Click to interact.",
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse, WASD, shift to run",
+		lines.draw_text("Mouse, WASD, Shift to run, Click to interact.",
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + 0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 		
+		if (milk_hint) {
+			lines.draw_text("Objective: Acquire milk",
+				glm::vec3(-aspect + 0.1f * H, 0.89f - H, 0.0),
+				glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+				glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+			lines.draw_text("Objective: Acquire milk",
+				glm::vec3(-aspect + 0.1f * H + ofs, 0.89f - H + ofs, 0.0),
+				glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+				glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		}
+
 		if (draw_debug) {
 			std::string const &fps = std::to_string(int(glm::round(1.0f / frame_delta)));
 			lines.draw_text(fps,
-			glm::vec3(-aspect + 0.1f * H, 0.99 - H, 0.0),
+			glm::vec3(-aspect + 0.1f * H, 0.99f - H, 0.0f),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 			lines.draw_text(fps,
-			glm::vec3(-aspect + 0.1f * H + ofs, 0.99 - H + ofs, 0.0),
+			glm::vec3(-aspect + 0.1f * H + ofs, 0.99f - H + ofs, 0.0f),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 		}
