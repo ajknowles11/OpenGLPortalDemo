@@ -125,7 +125,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"	e += nl * vec3(2);\n"
 		"	vec4 albedo = texture(TEX, texCoord) * color;\n"
 		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
-		"	fragColor = color;\n"
+		"	//fragColor = color;\n"
 		"	outNormal = n;\n"
 		"	outDepth = LinearizeDepth(gl_FragCoord.z);\n"
 		"}\n"

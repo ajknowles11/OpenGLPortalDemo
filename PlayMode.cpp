@@ -150,6 +150,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	for (auto &b : scene.buttons) {
 		if (b.name == "FridgeDoor") {
 			b.on_pressed = [&](){
+				//currentShaderID = whiteworldShaderID;
 				b.active = false;
 				scene.portals["PortalFridge"]->active = true;
 				scene.portals["Drop0"]->active = true;
@@ -198,13 +199,21 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 
 	//Screen Shader and quad Initialization
-	Shader screenShader(data_path("shaders/screen.vs"), data_path("shaders/screen.fs"));
-	screenShader.use();
-	screenShader.setInt("screenTexture", 0);
-	screenShader.setInt("normalTexture", 1);
-	screenShader.setInt("depthTexture", 2);
-	screenShaderID = screenShader.ID;
+	Shader whiteworldShader(data_path("shaders/whiteworld.vs"), data_path("shaders/whiteworld.fs"));
+	whiteworldShader.use();
+	whiteworldShader.setInt("screenTexture", 0);
+	whiteworldShader.setInt("normalTexture", 1);
+	whiteworldShader.setInt("depthTexture", 2);
+	whiteworldShaderID = whiteworldShader.ID;
+
+	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
+	normalShader.use();
+	normalShader.setInt("screenTexture", 0);
+	normalShaderID = normalShader.ID;
 	InitQuadBuffers();
+
+	//glEnable(GL_MULTISAMPLE);
+	currentShaderID = normalShaderID;
 
 }
 
@@ -329,7 +338,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 	//used for intro
-	std::cout << player.transform->position.x << "," <<player.transform->position.y <<"," << player.transform->position.z <<std::endl;
 	if (player.fall_to_walkmesh) {
 		player.velocity.x = 0;
 		player.velocity.y = 0;
@@ -561,6 +569,7 @@ void PlayMode::handle_portals() {
 			// SPECIAL CASES ----------------------------
 			bool normal_tp = true;
 			if (p == scene.portals["PortalFridge"]) {
+				currentShaderID = whiteworldShaderID;
 				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
 				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
 				player.velocity.z = -0.4f * player.gravity;
@@ -804,9 +813,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(screenShaderID);
-	glUniform1i(glGetUniformLocation(screenShaderID, "width"), drawable_size.x);
-	glUniform1i(glGetUniformLocation(screenShaderID, "height"), drawable_size.y);
+	glUseProgram(currentShaderID);
+	if(currentShaderID == whiteworldShaderID){
+		glUniform1i(glGetUniformLocation(currentShaderID, "width"), drawable_size.x);
+		glUniform1i(glGetUniformLocation(currentShaderID, "height"), drawable_size.y);
+	}
 
 	glBindVertexArray(quadVAO);
 	glActiveTexture(GL_TEXTURE0);

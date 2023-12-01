@@ -101,6 +101,9 @@ struct PlayMode : Mode {
 
 	//----- Screen Shader Related -----
 
+    unsigned int currentShaderID;
+
+
 	glm::vec2 drawableSize = glm::vec2(0.0f);
 	unsigned int framebuffer;
 	unsigned int textureColorbuffer;
@@ -108,7 +111,8 @@ struct PlayMode : Mode {
 	unsigned int textureDepthbuffer;
 	unsigned int depth_stencil_buffer;
     //unsigned int stencilbuffer;
-	unsigned int screenShaderID;
+	unsigned int whiteworldShaderID;
+    unsigned int normalShaderID;
 	unsigned int quadVAO, quadVBO;
 	float quadVertices[24] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
     // positions   // texCoords
