@@ -136,7 +136,7 @@ struct PlayMode : Mode {
 		glGenTextures(1, &textureNormalbuffer);
 		glBindTexture(GL_TEXTURE_2D, textureNormalbuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, drawable_size.x, drawable_size.y, 0, GL_RGB, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureNormalbuffer, 0);
 
@@ -144,7 +144,7 @@ struct PlayMode : Mode {
 		glGenTextures(1, &textureDepthbuffer);
 		glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, drawable_size.x, drawable_size.y, 0, GL_RED, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textureDepthbuffer, 0);
 
@@ -154,7 +154,7 @@ struct PlayMode : Mode {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, drawable_size.x, drawable_size.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, drawable_size.x, drawable_size.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth_stencil_buffer, 0); 

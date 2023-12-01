@@ -16,8 +16,8 @@ uniform int height;
 
 void make_kernel(inout vec4 n[9], sampler2D tex, vec2 coord)
 {
-	float w = 1.0 / width;
-	float h = 1.0 / height;
+	float w =0.5 / width;
+	float h =0.5 / height;
 
 	n[0] = vec4(texture2D(tex, coord + vec2( -w, -h)));
 	n[1] = vec4(texture2D(tex, coord + vec2(0.0, -h)));
@@ -74,8 +74,9 @@ void main()
 	1.0);
 
     float ourSobelMax = max(ourSobel.r, max(ourSobel.g, ourSobel.b));
-	float sobel_threshold = 0.0015f;
-	FragColor = (depth_sobel.x > sobel_threshold || ourSobelMax > 0.5)? vec4(1, 0.6, 0.6, 1.0) : vec4(col, 0);
+	float sobel_threshold = 0.0008f;
+	FragColor = (depth_sobel.x > sobel_threshold || ourSobelMax > 0.5)? vec4(vec3(0.1), 1.0) : vec4(1);
+	//FragColor = (normal_sobel.x > 0.5 || depth_sobel.x > sobel_threshold)? vec4(vec3(0.1), 1.0) : vec4(1.0);
 	//FragColor = mix(vec4(col, 0.0), vec4(1), ourSobel);
 
     //FragColor = vec4(col, 1.0);
