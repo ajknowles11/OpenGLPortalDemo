@@ -185,7 +185,7 @@ struct Scene {
 		GLint recursion_lvl = 0,
 		Portal const *from = nullptr) const;
 	
-	GLint default_draw_recursion_max = 1;
+	GLint default_draw_recursion_max = 0;
 
 	//This helper function draws normal drawables
 	void draw_non_portals(glm::mat4 const &world_to_clip, 
