@@ -206,6 +206,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	whiteworldShader.setInt("screenTexture", 0);
 	whiteworldShader.setInt("normalTexture", 1);
 	whiteworldShader.setInt("depthTexture", 2);
+	whiteworldShader.setInt("vcolorTexture", 3);
 	whiteworldShaderID = whiteworldShader.ID;
 
 	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
@@ -216,6 +217,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 	//glEnable(GL_MULTISAMPLE);
 	currentShaderID = normalShaderID;
+	//currentShaderID = whiteworldShaderID;
 
 }
 
@@ -339,6 +341,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	std::cout << "FPS: " << 1.0f / elapsed << "\n";
+	std::cout << "Player Position: " << player.transform->position.x << ", " << player.transform->position.y << ", " << player.transform->position.z << "\n";
 	//used for intro
 	if (player.fall_to_walkmesh) {
 		player.velocity.x = 0;
@@ -773,14 +777,14 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glEnable(GL_DEPTH_TEST);
 	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-	glDrawBuffers(3, drawBuffers);
+	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+	glDrawBuffers(4, drawBuffers);
 
 	//set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
 	glUseProgram(lit_color_texture_program->program);
 	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-	glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(glm::vec3(-6.0f, 0.0f, 2.0f)));
+	glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(glm::vec3(-7.0f, 0.5f, 2.1f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(0.2f, 0.2f, 0.2f)));
 	glUseProgram(0);
@@ -829,6 +833,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glBindTexture(GL_TEXTURE_2D, textureNormalbuffer);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, textureVertexColorbuffer);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	{ //use DrawLines to overlay some text:

@@ -109,6 +109,7 @@ struct PlayMode : Mode {
 	glm::vec2 drawableSize = glm::vec2(0.0f);
 	unsigned int framebuffer;
 	unsigned int textureColorbuffer;
+    unsigned int textureVertexColorbuffer;
 	unsigned int textureNormalbuffer;
 	unsigned int textureDepthbuffer;
 	unsigned int depth_stencil_buffer;
@@ -153,6 +154,14 @@ struct PlayMode : Mode {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textureDepthbuffer, 0);
+
+        // create a vertex color attachment texture
+        glGenTextures(1, &textureVertexColorbuffer);
+        glBindTexture(GL_TEXTURE_2D, textureVertexColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, drawable_size.x, drawable_size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_NEAREST
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //GL_LINEAR
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, textureVertexColorbuffer, 0);
 
 		//create a depth_stencil attachment texture
 		glGenTextures(1, &depth_stencil_buffer);
