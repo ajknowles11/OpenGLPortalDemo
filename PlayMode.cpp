@@ -594,6 +594,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 
 			}
 			else if (p == scene.portals["StairPortal1"]) {
@@ -606,6 +607,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal2"]) {
 				scene.portals["StairPortalA"]->dest = p;
@@ -617,6 +619,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal3"]) {
 				scene.portals["StairPortalA"]->dest = p;
@@ -628,12 +631,14 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortalA"]) {
 				scene.portals["StairPortal0"]->active = true;
 				scene.portals["StairPortal1"]->active = true;
 				scene.portals["StairPortal2"]->active = true;
 				scene.portals["StairPortal3"]->active = true;
+				scene.default_draw_recursion_max = 0;
 			}
 			else if (p == scene.portals["StairPortal0b"]) {
 				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal0"];
@@ -645,6 +650,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 
 			}
 			else if (p == scene.portals["StairPortal1b"]) {
@@ -657,6 +663,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal2b"]) {
 				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal2"];
@@ -668,6 +675,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal3b"]) {
 				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal3"];
@@ -679,28 +687,14 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortalB"]) {
 				scene.portals["StairPortal0b"]->active = true;
 				scene.portals["StairPortal1b"]->active = true;
 				scene.portals["StairPortal2b"]->active = true;
 				scene.portals["StairPortal3b"]->active = true;
-			}
-
-			else if (p == scene.portals["HallExit"]) {
-				scene.portals["StairPortalA"]->active = false;
-				scene.portals["StairPortalB"]->active = false;
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-
-				scene.portals["FunZone"]->active = true;
-
-				scene.default_draw_recursion_max = 1;
+				scene.default_draw_recursion_max = 0;
 			}
 
 			else if (p == scene.portals["HallExit"]) {
@@ -715,12 +709,10 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal3b"]->active = false;
 				scene.portals["Drop0"]->active = false;
 				scene.portals["Drop1"]->active = false;
-				scene.portals["EnterPlayground"]->active = true;
 
-				scene.portals["ground"]->active = true;
-				scene.portals["up"]->active = true;
+				scene.portals["FunZone"]->active = true;
 
-				scene.default_draw_recursion_max = 2;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["FunZone"]) {
 				scene.portals["StairPortalA"]->active = true;
@@ -735,14 +727,9 @@ void PlayMode::handle_portals() {
 				scene.portals["Drop0"]->active = true;
 				scene.portals["Drop1"]->active = true;
 
-				scene.portals["EnterPlayground"]->active = false;
-
 				scene.portals["FunZone"]->active = false;
 
 				scene.default_draw_recursion_max = 0;
-			}
-			else if (p == scene.portals["EnterPlayground"]) {
-				scene.portals["FunZone"]->active = false;
 			}
 
 
