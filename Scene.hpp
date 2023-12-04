@@ -77,7 +77,9 @@ struct Scene {
 			GLuint OBJECT_TO_LIGHT_mat4x3 = -1U; //uniform location for object to light space (== world space) matrix
 			GLuint NORMAL_TO_LIGHT_mat3 = -1U; //uniform location for normal to light space (== world space) matrix
 
-			GLuint CLIP_PLANE_vec4 = -1U; //uniform loc. for clipping plane (used by portals)
+			GLuint CLIP_PLANE_vec4 = -1U; //uniform loc. for clipping plane (so portals don't render objs behind)
+
+			GLuint SELF_CLIP_PLANE_vec4 = -1U; //uniform location for second clip plane, used only by portal meshes to clip themselves (avoids edge case)
 
 			std::function< void() > set_uniforms; //(optional) function to set any other useful uniforms
 
@@ -196,8 +198,9 @@ struct Scene {
 	//And this one draws a single drawable
 	void draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, 
 		glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f), 
-		bool const &use_clip = false,
-		glm::vec4 const &clip_plane = glm::vec4(0)) const;
+		uint8_t const &clip_plane_count = 0,
+		glm::vec4 const &clip_plane = glm::vec4(0), 
+		glm::vec4 const &self_clip_plane = glm::vec4(0)) const; 
 
 	// Draw a tri covering the entire screen. Useful for selective depth buffer operations.
 	// https://stackoverflow.com/questions/2588875/whats-the-best-way-to-draw-a-fullscreen-quad-in-opengl-3-2

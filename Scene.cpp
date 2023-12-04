@@ -154,7 +154,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilMask(0xFF);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p_clip_plane);
+		draw_one(*p->drawable, world_to_clip, world_to_light, 2, clip_plane, p_clip_plane);
 
 		// Enable color and enable depth drawing
 		// (We enable color because draw_fullscreen_tri will also set the inside of portal to the clear color)
@@ -226,7 +226,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glDepthRange(0, 1);
 		
 		// Draw portal into depth buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p_clip_plane);
+		draw_one(*p->drawable, world_to_clip, world_to_light, 2, clip_plane, p_clip_plane);
 
 		// Disable depth drawing and test
 		glDisable(GL_DEPTH_TEST);
@@ -246,7 +246,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
 
 		// Draw portal into stencil buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, true, p_clip_plane);
+		draw_one(*p->drawable, world_to_clip, world_to_light, 2, clip_plane, p_clip_plane);
 	}
 
 	// Draw at stencil >= recursionlevel
@@ -272,7 +272,7 @@ void Scene::draw_non_portals(glm::mat4 const &world_to_clip, glm::mat4x3 const &
 	}
 }
 
-void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, bool const &use_clip, glm::vec4 const &clip_plane) const {
+void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, glm::mat4x3 const &world_to_light, uint8_t const &clip_plane_count, glm::vec4 const &clip_plane, glm::vec4 const &self_clip_plane) const {
 	//Reference to drawable's pipeline for convenience:
 	Scene::Drawable::Pipeline const &pipeline = drawable.pipeline;
 
@@ -283,8 +283,13 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	//skip any drawables that don't contain any vertices:
 	if (pipeline.count == 0) return;
 
-	if (use_clip)
+	if (clip_plane_count > 1){
+		glEnable(GL_CLIP_DISTANCE1);
 		glEnable(GL_CLIP_DISTANCE0);
+	}
+	else if (clip_plane_count > 0) {
+		glEnable(GL_CLIP_DISTANCE0);
+	}
 
 
 	//Set shader program:
@@ -323,6 +328,10 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 		glUniform4fv(pipeline.CLIP_PLANE_vec4, 1, glm::value_ptr(clip_plane));
 	}
 
+	if (pipeline.SELF_CLIP_PLANE_vec4 != -1U) {
+		glUniform4fv(pipeline.SELF_CLIP_PLANE_vec4, 1, glm::value_ptr(self_clip_plane));
+	}
+
 	//set any requested custom uniforms:
 	if (pipeline.set_uniforms) pipeline.set_uniforms();
 
@@ -349,8 +358,13 @@ void Scene::draw_one(Drawable const &drawable, glm::mat4 const &world_to_clip, g
 	glUseProgram(0);
 	glBindVertexArray(0);
 
-	if (use_clip)
+	if (clip_plane_count > 1){
+		glDisable(GL_CLIP_DISTANCE1);
 		glDisable(GL_CLIP_DISTANCE0);
+	}
+	else if (clip_plane_count > 0) {
+		glDisable(GL_CLIP_DISTANCE0);
+	}
 
 	GL_ERRORS();
 }
