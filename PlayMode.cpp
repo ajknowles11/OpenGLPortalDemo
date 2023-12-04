@@ -16,13 +16,15 @@
 
 GLuint basic_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > basic_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("basic_portals.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("maze_portal.pnct"));
 	basic_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	std::cout << "basic meshes loaded" << std::endl;
 	return ret;
 });
 
 Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("basic_portals.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	std::cout << "start loading scene" << std::endl;
+	return new Scene(data_path("maze_portal.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = basic_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
@@ -82,7 +84,8 @@ Load< Scene > basic_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("basic_portals.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("maze_portal.w"));
+	std::cout << "walkmeshes loaded" << std::endl;
 	return ret;
 });
 
@@ -93,11 +96,23 @@ Load< Scene::FullTriProgram > full_tri_program(LoadTagEarly, []() -> Scene::Full
 PlayMode::PlayMode() : scene(*basic_scene) {
 	scene.full_tri_program = *full_tri_program;
 
+	std::cout << "scene loaded" << std::endl;
+
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
 	//player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
 	player.transform->position = glm::vec3(3.8, -10.0f, 0.0f);
+
+	// set the player postition to the "palyer"
+	// go through all scene drawables and find player
+	for (auto const &d : scene.drawables) {
+		if (d.transform->name == "player") {
+			player.transform->position = d.transform->position;
+			break;
+		}
+	}
+	std::cout << "player initial" << std::endl;
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();

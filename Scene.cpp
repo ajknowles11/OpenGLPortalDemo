@@ -618,10 +618,13 @@ void Scene::load(std::string const &filename,
 Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
 	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal) {
 	load(filename, on_drawable, on_portal);
+
 }
 
 Scene::Scene(Scene const &other) {
+	std::cout << "Scene copy constructor" << std::endl;
 	set(other);
+	std::cout << "Scene copy constructor done" << std::endl;
 }
 
 Scene &Scene::operator=(Scene const &other) {
@@ -683,4 +686,6 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	for (auto &p : portals) {
 		p.second->drawable->transform = transform_to_transform.at(p.second->drawable->transform);
 	}
+
+	std::cout << "portals complete" << std::endl;
 }
