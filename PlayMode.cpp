@@ -171,7 +171,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
 				glm::vec3 const &start_pos = player.transform->position;
-				timers.emplace_back(0.8f, [&](float alpha){
+				timers.emplace_back(1.0f, [&](float alpha){
 						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
 						player.transform->position = glm::mix(start_pos, target, alpha);
 						player.transform->rotation = glm::lerp(player.transform->rotation, glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1)), alpha);
@@ -698,6 +698,8 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
 
+				scene.portals["FunZone"]->active = true;
+
 				scene.default_draw_recursion_max = 1;
 			}
 
@@ -734,6 +736,8 @@ void PlayMode::handle_portals() {
 				scene.portals["Drop1"]->active = true;
 
 				scene.portals["EnterPlayground"]->active = false;
+
+				scene.portals["FunZone"]->active = false;
 
 				scene.default_draw_recursion_max = 0;
 			}

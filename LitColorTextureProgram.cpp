@@ -16,6 +16,7 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 	lit_color_texture_program_pipeline.NORMAL_TO_LIGHT_mat3 = ret->NORMAL_TO_LIGHT_mat3;
 
 	lit_color_texture_program_pipeline.CLIP_PLANE_vec4 = ret->CLIP_PLANE_vec4;
+	lit_color_texture_program_pipeline.SELF_CLIP_PLANE_vec4 = ret->SELF_CLIP_PLANE_vec4;
 
 	/* This will be used later if/when we build a light loop into the Scene:
 	lit_color_texture_program_pipeline.LIGHT_TYPE_int = ret->LIGHT_TYPE_int;
@@ -54,6 +55,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"uniform mat4x3 OBJECT_TO_LIGHT;\n"
 		"uniform mat3 NORMAL_TO_LIGHT;\n"
 		"uniform vec4 CLIP_PLANE;\n"
+		"uniform vec4 SELF_CLIP_PLANE;\n"
 		"in vec4 Position;\n"
 		"in vec3 Normal;\n"
 		"in vec4 Color;\n"
@@ -67,6 +69,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"	gl_Position = OBJECT_TO_CLIP * Position;\n"
 		"	position = OBJECT_TO_LIGHT * Position;\n"
 		"   gl_ClipDistance[0] = dot(vec4(position,1), CLIP_PLANE);\n"
+		"   gl_ClipDistance[1] = dot(vec4(position,1), SELF_CLIP_PLANE);"
 		"	normal = NORMAL_TO_LIGHT * Normal;\n"
 		"	color = Color;\n"
 		"	texCoord = TexCoord;\n"
@@ -152,6 +155,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	NORMAL_TO_LIGHT_mat3 = glGetUniformLocation(program, "NORMAL_TO_LIGHT");
 
 	CLIP_PLANE_vec4 = glGetUniformLocation(program, "CLIP_PLANE");
+	SELF_CLIP_PLANE_vec4 = glGetUniformLocation(program, "SELF_CLIP_PLANE");
 
 	LIGHT_TYPE_int = glGetUniformLocation(program, "LIGHT_TYPE");
 	LIGHT_LOCATION_vec3 = glGetUniformLocation(program, "LIGHT_LOCATION");
