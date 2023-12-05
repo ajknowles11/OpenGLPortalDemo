@@ -169,6 +169,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 	scene.portals["HallExit"]->active = false;
 	scene.portals["FlipExit"]->active = false;
+	scene.portals["DeacHard1"]->active = false;
+	scene.portals["DeacHard3"]->active = false;
 	
 
 	//Button scripting
@@ -251,6 +253,32 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				}
 				else {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+				}
+			};
+		}
+		else if (b.name == "LeverDeac3") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["DeacHard1"]->active = b.hit;
+				scene.portals["DeacHard3"]->active = b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(1,0,0));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0));
+				}
+			};
+		}
+		else if (b.name == "LeverDeac4") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["DeacHard0"]->active = !b.hit;
+				scene.portals["DeacHard2"]->active = !b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(0,1,0));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0));
 				}
 			};
 		}
