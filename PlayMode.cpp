@@ -171,6 +171,12 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	scene.portals["FlipExit"]->active = false;
 	scene.portals["DeacHard1"]->active = false;
 	scene.portals["DeacHard3"]->active = false;
+
+	for (auto &t : scene.transforms) {
+		if (t.name == "RotateBase") {
+			rotate_base = &t;
+		}
+	}
 	
 
 	//Button scripting
@@ -279,6 +285,17 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				}
 				else {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0));
+				}
+			};
+		}
+		else if (b.name == "RotateB") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				if (b.hit) {
+					rotate_base->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
+				}
+				else {
+					rotate_base->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
 				}
 			};
 		}
