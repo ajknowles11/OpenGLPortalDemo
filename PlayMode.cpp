@@ -557,6 +557,11 @@ void PlayMode::update(float elapsed) {
 			t.tick(elapsed);
 		}
 	}
+	for (size_t i = timers.size(); i > 0; i--) {
+		if (timers[i-1].queued_for_delete) {
+			timers.erase(timers.begin() + i - 1);
+		}
+	}
 }
 
 void PlayMode::handle_portals() {
