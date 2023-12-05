@@ -190,13 +190,26 @@ PlayMode::PlayMode() : scene(*level_scene) {
 						player.camera->transform->rotation = glm::lerp(player.camera->transform->rotation, glm::angleAxis(1.1f * glm::radians(90.0f), glm::vec3(1,0,0)), alpha);
 						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
 					}, [&](){
-						timers.emplace_back(0.4f, [&](float alpha){
+						timers.emplace_back(0.35f, [&](float alpha){
 							glm::vec3 const &start = glm::vec3(-4.5f, 0.5f, -0.2f);
 							glm::vec3 const &end = glm::vec3(-4.5f, -1.8f, -0.2f);
 							if (!player.fall_to_walkmesh) player.transform->position = glm::mix(start, end, alpha);
 						}, [&](){
 							player.animation_lock_look = false;
 							player.animation_lock_move = false;
+
+							// TELEPORT PLAYER (MANUALLY INSTEAD OF USING PORTAL LOGIC)
+
+							Scene::Portal *p = scene.portals["PortalFridge"];
+
+							player.transform->position = p->dest->drawable->transform->position + glm::vec3(0, -1.6f, -1.8f);
+							player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
+							player.velocity.z = -0.4f * player.gravity;
+							player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
+							walkmesh = walkmesh_map[p->dest->on_walkmesh];
+							player.uses_walkmesh = false;
+							player.fall_to_walkmesh = true;
+							p->active = false;
 						});
 					
 				});
@@ -572,18 +585,7 @@ void PlayMode::handle_portals() {
 
 			// SPECIAL CASES ----------------------------
 			bool normal_tp = true;
-			if (p == scene.portals["PortalFridge"]) {
-				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.9f, 0);
-				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
-				player.velocity.z = -0.4f * player.gravity;
-				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
-				walkmesh = walkmesh_map[p->dest->on_walkmesh];
-				player.uses_walkmesh = false;
-				player.fall_to_walkmesh = true;
-				p->active = false;
-				normal_tp = false;
-			}
-			else if (p == scene.portals["StairPortal0"]) {
+			if (p == scene.portals["StairPortal0"]) {
 				scene.portals["StairPortalA"]->dest = p;
 				scene.portals["StairPortal1"]->active = false;
 				scene.portals["StairPortal2"]->active = false;
