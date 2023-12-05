@@ -6,7 +6,6 @@ in vec2 TexCoords;
 uniform sampler2D screenTexture;
 uniform sampler2D normalTexture;
 uniform sampler2D depthTexture;
-uniform sampler2D vcolorTexture;
 
 //https://gist.github.com/Hebali/6ebfc66106459aacee6a9fac029d0115
 
@@ -41,7 +40,6 @@ void main()
     vec3 col = texture(screenTexture, TexCoords).rgb;
     vec3 normal = texture(normalTexture, TexCoords).rgb;
     float depth = texture(depthTexture, TexCoords).r;
-	vec4 vcol = texture(vcolorTexture, TexCoords);
 
 	//Apply sobel filter
 	vec4 n[9];
@@ -60,12 +58,12 @@ void main()
 	float depth_threshold = 0.002f;
 	float normal_threshold = 0.1f;
 
-	float maxRGB = max(vcol.r, max(vcol.g, vcol.b));
-	float minRGB = min(vcol.r, min(vcol.g, vcol.b));
+	float maxRGB = max(col.r, max(col.g, col.b));
+	float minRGB = min(col.r, min(col.g, col.b));
 	float lum = 0.5 * (maxRGB + minRGB);
 	float sat = (maxRGB - minRGB) / (1.0 - abs(2.0 * lum - 1.0));
 	if(sat < 0.25){
-		vcol = vec4(1);
+		col = vec3(1);
 	}
-	FragColor = (normal_sobel.x > normal_threshold || !smoothD && (depth_sobel.x > depth_threshold))? vec4(vec3(0.1), 1.0) : vcol;
+	FragColor = (normal_sobel.x > normal_threshold || !smoothD && (depth_sobel.x > depth_threshold))? vec4(vec3(0.1), 1.0) : vec4(col,1);
 } 

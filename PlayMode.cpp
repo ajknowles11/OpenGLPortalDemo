@@ -171,6 +171,20 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	scene.portals["FlipExit"]->active = false;
 	scene.portals["DeacHard1"]->active = false;
 	scene.portals["DeacHard3"]->active = false;
+
+	//Screen Shader and quad Initialization
+	Shader whiteworldShader(data_path("shaders/whiteworld.vs"), data_path("shaders/whiteworld.fs"));
+	whiteworldShader.use();
+	whiteworldShader.setInt("screenTexture", 0);
+	whiteworldShader.setInt("normalTexture", 1);
+	whiteworldShader.setInt("depthTexture", 2);
+	whiteworldShaderID = whiteworldShader.ID;
+
+	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
+	normalShader.use();
+	normalShader.setInt("screenTexture", 0);
+	normalShaderID = normalShader.ID;
+	InitQuadBuffers();
 	
 
 	//Button scripting
@@ -212,6 +226,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 							player.uses_walkmesh = false;
 							player.fall_to_walkmesh = true;
 							p->active = false;
+
+							currentShaderID = whiteworldShaderID;
 						});
 					
 				});
@@ -286,20 +302,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	}
 
 
-	//Screen Shader and quad Initialization
-	Shader whiteworldShader(data_path("shaders/whiteworld.vs"), data_path("shaders/whiteworld.fs"));
-	whiteworldShader.use();
-	whiteworldShader.setInt("screenTexture", 0);
-	whiteworldShader.setInt("normalTexture", 1);
-	whiteworldShader.setInt("depthTexture", 2);
-	whiteworldShader.setInt("vcolorTexture", 3);
-	whiteworldShaderID = whiteworldShader.ID;
-
-	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
-	normalShader.use();
-	normalShader.setInt("screenTexture", 0);
-	normalShaderID = normalShader.ID;
-	InitQuadBuffers();
+	
 
 	//glEnable(GL_MULTISAMPLE);
 	currentShaderID = normalShaderID;
@@ -427,8 +430,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
-	std::cout << "FPS: " << 1.0f / elapsed << "\n";
-	std::cout << "Player Position: " << player.transform->position.x << ", " << player.transform->position.y << ", " << player.transform->position.z << "\n";
+	//std::cout << "FPS: " << 1.0f / elapsed << "\n";
+	//std::cout << "Player Position: " << player.transform->position.x << ", " << player.transform->position.y << ", " << player.transform->position.z << "\n";
 	//used for intro
 	if (player.fall_to_walkmesh) {
 		player.velocity.x = 0;
@@ -664,7 +667,6 @@ void PlayMode::handle_portals() {
 			// SPECIAL CASES ----------------------------
 			bool normal_tp = true;
 			if (p == scene.portals["PortalFridge"]) {
-				currentShaderID = whiteworldShaderID;
 				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
 				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
 				player.velocity.z = -0.4f * player.gravity;

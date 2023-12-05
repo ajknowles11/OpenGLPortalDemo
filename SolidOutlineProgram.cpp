@@ -74,10 +74,17 @@ SolidOutlineProgram::SolidOutlineProgram() {
 		"out vec4 fragColor;\n"
 		"out vec3 outNormal;\n"
 		"out float outDepth;\n"
+		"float near = 0.1;\n"
+		"float far  = 15.0;\n"
+		"float LinearizeDepth(float depth)\n"
+		"{\n"
+		"	float z = depth * 2.0 - 1.0; // back to NDC\n"
+		"	return (2.0 * near * far) / (far + near - z * (far - near));\n"
+		"}\n"
 		"void main() {\n"
 		"	fragColor = texture(TEX, texCoord) * color;\n"
 		"	outNormal = normalize(normal);\n"
-		"	outDepth = gl_FragCoord.z;\n"
+		"	outDepth = LinearizeDepth(gl_FragCoord.z);\n"
 		"}\n"
 	);
 	//As you can see above, adjacent strings in C/C++ are concatenated.
