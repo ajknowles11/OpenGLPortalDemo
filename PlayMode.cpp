@@ -168,6 +168,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	scene.current_group = &scene.portal_groups["Start"];
 
 	scene.portals["HallExit"]->active = false;
+	scene.portals["FlipExit"]->active = false;
 	
 
 	//Button scripting
@@ -217,6 +218,13 @@ PlayMode::PlayMode() : scene(*level_scene) {
 			b.on_pressed = [&](){
 				scene.portals["HallExit"]->active = true;
 				b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1,0,0));
+				b.active = false;
+			};
+		}
+		else if (b.name == "LeverFlip") {
+			b.on_pressed = [&](){
+				scene.portals["FlipExit"]->active = true;
+				b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(1,0,0));
 				b.active = false;
 			};
 		}
