@@ -6,6 +6,7 @@ in vec2 TexCoords;
 uniform sampler2D screenTexture;
 uniform sampler2D normalTexture;
 uniform sampler2D depthTexture;
+uniform sampler2D stencilTexture;
 
 
 
@@ -41,6 +42,11 @@ float LinearizeDepth(float depth)
 
 void main()
 {
+	if (texture(stencilTexture, TexCoords).a == 0) {
+		discard;
+	}
+
+
     vec3 col = texture(screenTexture, TexCoords).rgb;
     vec3 normal = texture(normalTexture, TexCoords).rgb;
     float depth = texture(depthTexture, TexCoords).r;

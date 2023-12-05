@@ -15,6 +15,7 @@ import bpy
 
 from bpy.props import (BoolProperty,
                        PointerProperty,
+                       EnumProperty,
                        )
 
 from bpy.types import (Panel,
@@ -57,6 +58,19 @@ class PortalProperties(PropertyGroup):
         default = False
     )
 
+    def program_callback(self, context):
+        return (
+            ('OUTLINED', 'Outlined', 'Normal outlined with post processing'),
+            ('LITCOLORTEX', 'LitColorTexture', 'Use LitColorTextureProgram (no outline)')
+        )
+
+    shader_program: EnumProperty(  
+        items = program_callback,
+        name = "Shader Program",
+        description = "Shader program and amount of post-processing for this mesh",
+        default = None,
+    )
+
 # Panel
 
 class UV_PT_portals_panel(Panel):
@@ -76,6 +90,7 @@ class UV_PT_portals_panel(Panel):
         layout.prop(portaldata, "walk_mesh")
         layout.prop(portaldata, "is_button")
         layout.prop(portaldata, "is_trigger")
+        layout.prop(portaldata, "shader_program")
 
 # Registration
 

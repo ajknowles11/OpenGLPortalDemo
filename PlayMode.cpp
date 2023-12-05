@@ -1,6 +1,8 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "ColorTextureProgram.hpp"
+#include "SolidOutlineProgram.hpp"
 
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
@@ -15,9 +17,13 @@
 #include <random>
 
 GLuint meshes_for_lit_color_texture_program = 0;
+GLuint meshes_for_color_texture_program = 0;
+GLuint meshes_for_solid_outline_program = 0;
 Load< MeshBuffer > level_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("level/level.pnct"));
 	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	meshes_for_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	meshes_for_solid_outline_program = ret->make_vao_for_program(solid_outline_program->program);
 	return ret;
 });
 
@@ -28,9 +34,16 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
-		drawable.pipeline = lit_color_texture_program_pipeline;
+		if (mesh.program == 0) {
+			drawable.pipeline = solid_outline_program_pipeline;
+			drawable.pipeline.vao = meshes_for_solid_outline_program;
+		}
+		else if (mesh.program == 1) {
+			drawable.pipeline = lit_color_texture_program_pipeline;
+			drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		}
 
-		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -560,7 +573,7 @@ void PlayMode::handle_portals() {
 			// SPECIAL CASES ----------------------------
 			bool normal_tp = true;
 			if (p == scene.portals["PortalFridge"]) {
-				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
+				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.9f, 0);
 				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
 				player.velocity.z = -0.4f * player.gravity;
 				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
@@ -746,16 +759,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 
 	//update camera aspect ratio for drawable:
-	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);;
+	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
 	//Start writing to framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	//glDisable(GL_ALPHA_TEST);
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+	glClearDepth(1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
 	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
 	glDrawBuffers(3, drawBuffers);
+
+	GL_ERRORS();
 
 	//set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
@@ -764,10 +780,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
 	glUseProgram(0);
-
-	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
-	glClearDepth(1.0f); //1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
