@@ -97,9 +97,15 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
-		drawable.pipeline = lit_color_texture_program_pipeline;
-
-		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		if (mesh.program == 0) {
+			drawable.pipeline = solid_outline_program_pipeline;
+			drawable.pipeline.vao = meshes_for_solid_outline_program;
+		}
+		else if (mesh.program == 1) {
+			drawable.pipeline = lit_color_texture_program_pipeline;
+			drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		}
+		
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
