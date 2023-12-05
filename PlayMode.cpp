@@ -241,6 +241,19 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				}
 			};
 		}
+		else if (b.name == "LeverDeac2") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["Deac3"]->active = !b.hit;
+				scene.portals["Deac4"]->active = !b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+				}
+			};
+		}
 	}
 
 
