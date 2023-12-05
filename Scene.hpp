@@ -165,7 +165,8 @@ struct Scene {
 		Drawable *drawable = nullptr;
 		BoxCollider box;
 		std::string name;
-		bool active = true;
+		bool hit = false; //whether this has been interacted with (not necessarily used all the time)
+		bool active = true; //whether this could be interacted with
 		std::function<void()> on_pressed = {};
 	};
 
