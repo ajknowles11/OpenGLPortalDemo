@@ -137,12 +137,12 @@ struct Scene {
 
 	struct Portal {
 		Portal() : active(false) {}
-		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_) : 
-			Portal(drawable_, box_, on_walkmesh_, nullptr) {}
+		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, std::string group_) : 
+			Portal(drawable_, box_, on_walkmesh_, nullptr, group_) {}
 		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, 
-			Portal *dest_) : drawable(drawable_), 
+			Portal *dest_, std::string group_) : drawable(drawable_), 
 			box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), 
-			on_walkmesh(on_walkmesh_), dest(dest_) {}
+			on_walkmesh(on_walkmesh_), dest(dest_), group(group_) {}
 		~Portal() {}
 		Drawable *drawable = nullptr;
 		Portal *dest = nullptr;
@@ -150,10 +150,11 @@ struct Scene {
 		bool player_in_front = false;
 		bool sleeping = false;
 
-		bool active = false;
+		bool active = true;
 		std::string on_walkmesh;
+		std::string group;
 
-		glm::vec4 get_clipping_plane(glm::vec3 view_pos);
+		glm::vec4 get_clipping_plane(glm::vec3 view_pos) const;
 	};
 
 	struct Button {
@@ -164,7 +165,8 @@ struct Scene {
 		Drawable *drawable = nullptr;
 		BoxCollider box;
 		std::string name;
-		bool active = true;
+		bool hit = false; //whether this has been interacted with (not necessarily used all the time)
+		bool active = true; //whether this could be interacted with
 		std::function<void()> on_pressed = {};
 	};
 
@@ -173,7 +175,9 @@ struct Scene {
 	std::list< Drawable > drawables;
 	std::list< Camera > cameras;
 	std::list< Light > lights;
-	std::unordered_map<std::string, Portal*> portals;
+	std::unordered_map<std::string, Portal*> portals; //sometimes we want to access portals by name
+	std::unordered_map< std::string, std::vector<Portal*> > portal_groups; //but usually we access by group name
+	std::vector<Portal*> *current_group = nullptr;
 	std::vector< Button > buttons;
 
 	//The "draw" function provides a convenient way to pass all the things in a scene to OpenGL:
@@ -243,7 +247,7 @@ struct Scene {
 	// throws on file format errors
 	void load(std::string const &filename,
 		std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable = nullptr,
-		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal = nullptr,
+		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &, std::string const &) > const &on_portal = nullptr,
 		std::function< void(Scene &, Transform *, std::string const &) > const &on_button = nullptr
 	);
 
@@ -256,7 +260,7 @@ struct Scene {
 
 	//load a scene:
 	Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal, 
+		std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &, std::string const &) > const &on_portal, 
 		std::function< void(Scene &, Transform *, std::string const &) > const &on_button);
 
 	//copy a scene (with proper pointer fixup):

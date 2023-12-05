@@ -1,6 +1,8 @@
 #include "PlayMode.hpp"
 
 #include "LitColorTextureProgram.hpp"
+#include "ColorTextureProgram.hpp"
+#include "SolidOutlineProgram.hpp"
 
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
@@ -15,9 +17,13 @@
 #include <random>
 
 GLuint meshes_for_lit_color_texture_program = 0;
+GLuint meshes_for_color_texture_program = 0;
+GLuint meshes_for_solid_outline_program = 0;
 Load< MeshBuffer > level_meshes(LoadTagDefault, []() -> MeshBuffer const * {
 	MeshBuffer const *ret = new MeshBuffer(data_path("level/level.pnct"));
 	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	meshes_for_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+	meshes_for_solid_outline_program = ret->make_vao_for_program(solid_outline_program->program);
 	return ret;
 });
 
@@ -28,14 +34,21 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
-		drawable.pipeline = lit_color_texture_program_pipeline;
+		if (mesh.program == 0) {
+			drawable.pipeline = solid_outline_program_pipeline;
+			drawable.pipeline.vao = meshes_for_solid_outline_program;
+		}
+		else if (mesh.program == 1) {
+			drawable.pipeline = lit_color_texture_program_pipeline;
+			drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		}
 
-		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
 
-	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name){
+	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name, std::string const &group_name){
 		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
@@ -62,21 +75,23 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 
 			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 			if (portal == nullptr) { //not already created
-				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest);
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest, group_name);
 			}
 			else { //already created (don't change pointer, just value pointed to)
-				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest);
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest, group_name);
 			}
 		}
 		else {
 			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 			if (portal == nullptr) { //not already created
-				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name);
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, group_name);
 			}
 			else { //already created (don't change pointer, just value pointed to)
-				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name);
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, group_name);
 			}
 		}
+
+		scene.portal_groups[group_name].emplace_back(portal);
 
 	}, [&](Scene &scene, Scene::Transform *transform, std::string const &button_name){
 		Mesh const &mesh = level_meshes->lookup(button_name);
@@ -84,9 +99,15 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
-		drawable.pipeline = lit_color_texture_program_pipeline;
-
-		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		if (mesh.program == 0) {
+			drawable.pipeline = solid_outline_program_pipeline;
+			drawable.pipeline.vao = meshes_for_solid_outline_program;
+		}
+		else if (mesh.program == 1) {
+			drawable.pipeline = lit_color_texture_program_pipeline;
+			drawable.pipeline.vao = meshes_for_lit_color_texture_program;
+		}
+		
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -144,7 +165,12 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
+	scene.current_group = &scene.portal_groups["Start"];
 
+	scene.portals["HallExit"]->active = false;
+	scene.portals["FlipExit"]->active = false;
+	scene.portals["DeacHard1"]->active = false;
+	scene.portals["DeacHard3"]->active = false;
 	
 
 	//Button scripting
@@ -154,19 +180,6 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				//currentShaderID = whiteworldShaderID;
 				b.active = false;
 				milk_hint = false;
-				scene.portals["PortalFridge"]->active = true;
-				scene.portals["Drop0"]->active = true;
-				scene.portals["Drop1"]->active = true;
-				scene.portals["StairPortalA"]->active = true;
-				scene.portals["StairPortalB"]->active = true;
-				scene.portals["StairPortal0"]->active = true;
-				scene.portals["StairPortal1"]->active = true;
-				scene.portals["StairPortal2"]->active = true;
-				scene.portals["StairPortal3"]->active = true;
-				scene.portals["StairPortal0b"]->active = true;
-				scene.portals["StairPortal1b"]->active = true;
-				scene.portals["StairPortal2b"]->active = true;
-				scene.portals["StairPortal3b"]->active = true;
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
@@ -178,13 +191,27 @@ PlayMode::PlayMode() : scene(*level_scene) {
 						player.camera->transform->rotation = glm::lerp(player.camera->transform->rotation, glm::angleAxis(1.1f * glm::radians(90.0f), glm::vec3(1,0,0)), alpha);
 						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
 					}, [&](){
-						timers.emplace_back(0.4f, [&](float alpha){
+						timers.emplace_back(0.35f, [&](float alpha){
 							glm::vec3 const &start = glm::vec3(-4.5f, 0.5f, -0.2f);
 							glm::vec3 const &end = glm::vec3(-4.5f, -1.8f, -0.2f);
 							if (!player.fall_to_walkmesh) player.transform->position = glm::mix(start, end, alpha);
 						}, [&](){
 							player.animation_lock_look = false;
 							player.animation_lock_move = false;
+
+							// TELEPORT PLAYER (MANUALLY INSTEAD OF USING PORTAL LOGIC)
+
+							Scene::Portal *p = scene.portals["PortalFridge"];
+							scene.current_group = &scene.portal_groups[p->dest->group];
+
+							player.transform->position = p->dest->drawable->transform->position + glm::vec3(0, -1.6f, -1.8f);
+							player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
+							player.velocity.z = -0.4f * player.gravity;
+							player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
+							walkmesh = walkmesh_map[p->dest->on_walkmesh];
+							player.uses_walkmesh = false;
+							player.fall_to_walkmesh = true;
+							p->active = false;
 						});
 					
 				});
@@ -195,6 +222,65 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				scene.portals["HallExit"]->active = true;
 				b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1,0,0));
 				b.active = false;
+			};
+		}
+		else if (b.name == "LeverFlip") {
+			b.on_pressed = [&](){
+				scene.portals["FlipExit"]->active = true;
+				b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(1,0,0));
+				b.active = false;
+			};
+		}
+		else if (b.name == "LeverDeac") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["Deac1"]->active = !b.hit;
+				scene.portals["Deac2"]->active = !b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(0,1,0));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0));
+				}
+			};
+		}
+		else if (b.name == "LeverDeac2") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["Deac3"]->active = !b.hit;
+				scene.portals["Deac4"]->active = !b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
+				}
+			};
+		}
+		else if (b.name == "LeverDeac3") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["DeacHard1"]->active = b.hit;
+				scene.portals["DeacHard3"]->active = b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(1,0,0));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0));
+				}
+			};
+		}
+		else if (b.name == "LeverDeac4") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				scene.portals["DeacHard0"]->active = !b.hit;
+				scene.portals["DeacHard2"]->active = !b.hit;
+				if (b.hit) {
+					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(0,1,0));
+				}
+				else {
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0));
+				}
 			};
 		}
 	}
@@ -538,6 +624,11 @@ void PlayMode::update(float elapsed) {
 			t.tick(elapsed);
 		}
 	}
+	for (size_t i = timers.size(); i > 0; i--) {
+		if (timers[i-1].queued_for_delete) {
+			timers.erase(timers.begin() + i - 1);
+		}
+	}
 }
 
 void PlayMode::handle_portals() {
@@ -594,6 +685,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 
 			}
 			else if (p == scene.portals["StairPortal1"]) {
@@ -606,6 +698,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal2"]) {
 				scene.portals["StairPortalA"]->dest = p;
@@ -617,6 +710,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal3"]) {
 				scene.portals["StairPortalA"]->dest = p;
@@ -628,12 +722,14 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortalA"]) {
 				scene.portals["StairPortal0"]->active = true;
 				scene.portals["StairPortal1"]->active = true;
 				scene.portals["StairPortal2"]->active = true;
 				scene.portals["StairPortal3"]->active = true;
+				scene.default_draw_recursion_max = 0;
 			}
 			else if (p == scene.portals["StairPortal0b"]) {
 				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal0"];
@@ -645,6 +741,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 
 			}
 			else if (p == scene.portals["StairPortal1b"]) {
@@ -657,6 +754,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal2b"]) {
 				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal2"];
@@ -668,6 +766,7 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal3b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortal3b"]) {
 				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal3"];
@@ -679,28 +778,14 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal0b"]->active = false;
 				scene.portals["StairPortal1b"]->active = false;
 				scene.portals["StairPortal2b"]->active = false;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["StairPortalB"]) {
 				scene.portals["StairPortal0b"]->active = true;
 				scene.portals["StairPortal1b"]->active = true;
 				scene.portals["StairPortal2b"]->active = true;
 				scene.portals["StairPortal3b"]->active = true;
-			}
-
-			else if (p == scene.portals["HallExit"]) {
-				scene.portals["StairPortalA"]->active = false;
-				scene.portals["StairPortalB"]->active = false;
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-
-				scene.portals["FunZone"]->active = true;
-
-				scene.default_draw_recursion_max = 1;
+				scene.default_draw_recursion_max = 0;
 			}
 
 			else if (p == scene.portals["HallExit"]) {
@@ -715,12 +800,10 @@ void PlayMode::handle_portals() {
 				scene.portals["StairPortal3b"]->active = false;
 				scene.portals["Drop0"]->active = false;
 				scene.portals["Drop1"]->active = false;
-				scene.portals["EnterPlayground"]->active = true;
 
-				scene.portals["ground"]->active = true;
-				scene.portals["up"]->active = true;
+				scene.portals["FunZone"]->active = true;
 
-				scene.default_draw_recursion_max = 2;
+				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["FunZone"]) {
 				scene.portals["StairPortalA"]->active = true;
@@ -735,14 +818,9 @@ void PlayMode::handle_portals() {
 				scene.portals["Drop0"]->active = true;
 				scene.portals["Drop1"]->active = true;
 
-				scene.portals["EnterPlayground"]->active = false;
-
 				scene.portals["FunZone"]->active = false;
 
 				scene.default_draw_recursion_max = 0;
-			}
-			else if (p == scene.portals["EnterPlayground"]) {
-				scene.portals["FunZone"]->active = false;
 			}
 
 
@@ -753,6 +831,8 @@ void PlayMode::handle_portals() {
 				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 				player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
 				p->dest->sleeping = true;
+
+				scene.current_group = &scene.portal_groups[p->dest->group];
 
 				walkmesh = walkmesh_map[p->dest->on_walkmesh];
 				if (walkmesh != nullptr) {
@@ -773,16 +853,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 
 	//update camera aspect ratio for drawable:
-	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);;
+	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
 	//Start writing to framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 	//glDisable(GL_ALPHA_TEST);
 	glEnable(GL_DEPTH_TEST);
-	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+	glClearDepth(1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
 	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
 	glDrawBuffers(4, drawBuffers);
+
+	GL_ERRORS();
 
 	//set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
@@ -792,10 +875,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(0.2f, 0.2f, 0.2f)));
 	glUseProgram(0);
-
-	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
-	glClearDepth(1.0f); //1.0 is actually the default value to clear the depth buffer to, but FYI you can change it.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
