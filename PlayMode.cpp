@@ -48,7 +48,7 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
 
-	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name){
+	}, [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name, std::string const &dest_name, std::string const &walk_mesh_name, std::string const &group_name){
 		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
@@ -75,21 +75,23 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 
 			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 			if (portal == nullptr) { //not already created
-				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest);
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest, group_name);
 			}
 			else { //already created (don't change pointer, just value pointed to)
-				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest);
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, dest, group_name);
 			}
 		}
 		else {
 			//this portal may already have been created as a dest portal for an earlier one, in which case we need to keep the pointer the same.
 			if (portal == nullptr) { //not already created
-				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name);
+				portal = new Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, group_name);
 			}
 			else { //already created (don't change pointer, just value pointed to)
-				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name);
+				*portal = Scene::Portal(drawable, Scene::BoxCollider(mesh.min, mesh.max), walk_mesh_name, group_name);
 			}
 		}
+
+		scene.portal_groups[group_name].emplace_back(portal);
 
 	}, [&](Scene &scene, Scene::Transform *transform, std::string const &button_name){
 		Mesh const &mesh = level_meshes->lookup(button_name);
@@ -163,7 +165,9 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
+	scene.current_group = &scene.portal_groups["Start"];
 
+	scene.portals["HallExit"]->active = false;
 	
 
 	//Button scripting
@@ -172,19 +176,6 @@ PlayMode::PlayMode() : scene(*level_scene) {
 			b.on_pressed = [&](){
 				b.active = false;
 				milk_hint = false;
-				scene.portals["PortalFridge"]->active = true;
-				scene.portals["Drop0"]->active = true;
-				scene.portals["Drop1"]->active = true;
-				scene.portals["StairPortalA"]->active = true;
-				scene.portals["StairPortalB"]->active = true;
-				scene.portals["StairPortal0"]->active = true;
-				scene.portals["StairPortal1"]->active = true;
-				scene.portals["StairPortal2"]->active = true;
-				scene.portals["StairPortal3"]->active = true;
-				scene.portals["StairPortal0b"]->active = true;
-				scene.portals["StairPortal1b"]->active = true;
-				scene.portals["StairPortal2b"]->active = true;
-				scene.portals["StairPortal3b"]->active = true;
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
@@ -207,6 +198,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 							// TELEPORT PLAYER (MANUALLY INSTEAD OF USING PORTAL LOGIC)
 
 							Scene::Portal *p = scene.portals["PortalFridge"];
+							scene.current_group = &scene.portal_groups[p->dest->group];
 
 							player.transform->position = p->dest->drawable->transform->position + glm::vec3(0, -1.6f, -1.8f);
 							player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
@@ -747,6 +739,8 @@ void PlayMode::handle_portals() {
 				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
 				player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
 				p->dest->sleeping = true;
+
+				scene.current_group = &scene.portal_groups[p->dest->group];
 
 				walkmesh = walkmesh_map[p->dest->on_walkmesh];
 				if (walkmesh != nullptr) {

@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Portal Data",
     "author": "Andrew Knowles",
-    "version": (0, 3),
+    "version": (0, 4),
     "blender": (2, 80, 0),
     "location": "Properties > Object > Portal Data",
     "description": "Allows meshes to be marked as portals with destinations, and adds some object types.",
@@ -16,6 +16,7 @@ import bpy
 from bpy.props import (BoolProperty,
                        PointerProperty,
                        EnumProperty,
+                       StringProperty,
                        )
 
 from bpy.types import (Panel,
@@ -71,6 +72,12 @@ class PortalProperties(PropertyGroup):
         default = None,
     )
 
+    portal_group: StringProperty(
+        name = "Portal Group",
+        description = "Group this portal is assigned to, and will be enabled/disabled with",
+        default = ""
+    )
+
 # Panel
 
 class UV_PT_portals_panel(Panel):
@@ -91,6 +98,7 @@ class UV_PT_portals_panel(Panel):
         layout.prop(portaldata, "is_button")
         layout.prop(portaldata, "is_trigger")
         layout.prop(portaldata, "shader_program")
+        layout.prop(portaldata, "portal_group")
 
 # Registration
 
