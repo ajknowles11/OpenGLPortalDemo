@@ -66,4 +66,23 @@ void main()
 		col = vec3(1);
 	}
 	FragColor = (normal_sobel.x > normal_threshold || !smoothD && (depth_sobel.x > depth_threshold))? vec4(vec3(0.1), 1.0) : vec4(col,1);
+
+	// Apply fog
+	vec4 fogColor = vec4(0.7412, 0.2549, 0.2549, 1.0);
+	float noFogDepth = 12.5;
+	if(depth == 0.8){
+		depth = 15.0;
+	}
+	if(depth > noFogDepth){
+		//Linear Fog
+		//FragColor = mix(FragColor, fogColor, clamp((depth - noFogDepth) / (14.5 - noFogDepth), 0.0, 1.0));
+
+		//Exponential (Squared) Fog
+		float scaledDepth = mix(0, 5, clamp((depth - noFogDepth) / (15 - noFogDepth), 0, 1));
+		float scaledDepth2 = scaledDepth * scaledDepth;
+		float fogCoeff = 1.0/ pow(1.24, scaledDepth2);
+
+		FragColor = mix(fogColor, FragColor, fogCoeff);
+	}
+	
 } 
