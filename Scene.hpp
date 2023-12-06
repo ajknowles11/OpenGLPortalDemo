@@ -165,7 +165,8 @@ struct Scene {
 		Drawable *drawable = nullptr;
 		BoxCollider box;
 		std::string name;
-		bool hit = false; //whether this has been interacted with (not necessarily used all the time)
+		float range_mult = 1.0f; //multiply player interaction range by this, used since specific buttons can cause players to get out of bounds by pressing them from unintended spots
+		uint32_t hit = 0; //some method to count interactions, usually used as a bool, sometimes not at all
 		bool active = true; //whether this could be interacted with
 		std::function<void()> on_pressed = {};
 	};

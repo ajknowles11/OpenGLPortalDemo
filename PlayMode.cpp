@@ -188,10 +188,9 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
-				glm::vec3 const &start_pos = player.transform->position;
 				timers.emplace_back(1.0f, [&](float alpha){
 						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
-						player.transform->position = glm::mix(start_pos, target, alpha);
+						player.transform->position = glm::mix(player.transform->position, target, alpha);
 						player.transform->rotation = glm::lerp(player.transform->rotation, glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1)), alpha);
 						player.camera->transform->rotation = glm::lerp(player.camera->transform->rotation, glm::angleAxis(1.1f * glm::radians(90.0f), glm::vec3(1,0,0)), alpha);
 						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
@@ -224,79 +223,114 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		}
 		else if (b.name == "Lever") {
 			b.on_pressed = [&](){
-				scene.portals["HallExit"]->active = true;
-				b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1,0,0));
+				b.hit = !b.hit;
 				b.active = false;
+				scene.portals["HallExit"]->active = b.hit; //we used to activate after lever anim finished, but could walk through deac'd portals quickly in some cases.
+				//we could also init timer once (without auto start/delete) and just save a ref, but it's not a big deal
+				timers.emplace_back(0.15f, [&](float alpha){
+					float angle = b.hit ? glm::mix(0.0f, 90.0f, alpha) : glm::mix(90.0f, 0.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
+				}, [&](){
+					b.active = true;
+				});
 			};
 		}
 		else if (b.name == "LeverFlip") {
 			b.on_pressed = [&](){
-				scene.portals["FlipExit"]->active = true;
-				b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(1,0,0));
+				b.hit = !b.hit;
 				b.active = false;
+				scene.portals["FlipExit"]->active = b.hit;
+				timers.emplace_back(0.15f, [&](float alpha){
+					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
+				}, [&](){
+					b.active = true;
+				});
 			};
 		}
 		else if (b.name == "LeverDeac") {
+			b.hit = true;
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
-				scene.portals["Deac1"]->active = !b.hit;
-				scene.portals["Deac2"]->active = !b.hit;
-				if (b.hit) {
-					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(0,1,0));
-				}
-				else {
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0));
-				}
+				b.active = false;
+				scene.portals["Deac1"]->active = b.hit;
+				scene.portals["Deac2"]->active = b.hit;
+				timers.emplace_back(0.15f, [&](float alpha){
+					float angle = b.hit ? glm::mix(90.0f, 0.0f, alpha) : glm::mix(0.0f, 90.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
+				}, [&](){
+					b.active = true;
+				});
 			};
 		}
 		else if (b.name == "LeverDeac2") {
+			b.hit = true;
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
-				scene.portals["Deac3"]->active = !b.hit;
-				scene.portals["Deac4"]->active = !b.hit;
-				if (b.hit) {
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1));
-				}
-				else {
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-				}
+				b.active = false;
+				scene.portals["Deac3"]->active = b.hit;
+				scene.portals["Deac4"]->active = b.hit;
+				timers.emplace_back(0.15f, [&](float alpha){
+					float angle = b.hit ? glm::mix(90.0f, 0.0f, alpha) : glm::mix(0.0f, 90.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,0,1));
+				}, [&](){
+					b.active = true;
+				});
 			};
 		}
 		else if (b.name == "LeverDeac3") {
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
+				b.active = false;
 				scene.portals["DeacHard1"]->active = b.hit;
 				scene.portals["DeacHard3"]->active = b.hit;
-				if (b.hit) {
-					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(1,0,0));
-				}
-				else {
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(1,0,0));
-				}
+				timers.emplace_back(0.15f, [&](float alpha){
+					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
+				}, [&](){
+					b.active = true;
+				});
 			};
 		}
 		else if (b.name == "LeverDeac4") {
+			b.hit = true;
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
-				scene.portals["DeacHard0"]->active = !b.hit;
-				scene.portals["DeacHard2"]->active = !b.hit;
-				if (b.hit) {
-					b.drawable->transform->rotation = glm::angleAxis(-glm::radians(90.0f), glm::vec3(0,1,0));
-				}
-				else {
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,1,0));
-				}
+				b.active = false;
+				scene.portals["DeacHard0"]->active = b.hit;
+				scene.portals["DeacHard2"]->active = b.hit;
+				timers.emplace_back(0.15f, [&](float alpha){
+					float angle = b.hit ? glm::mix(-90.0f, 0.0f, alpha) : glm::mix(0.0f, -90.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
+				}, [&](){
+					b.active = true;
+				});
 			};
 		}
 		else if (b.name == "RotateB") {
+			b.range_mult = 0.75f;
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
-				if (b.hit) {
-					rotate_base->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
-				}
-				else {
-					rotate_base->rotation = glm::angleAxis(glm::radians(0.0f), glm::vec3(0,0,1));
-				}
+				b.active = false;
+				float const &zpos = b.drawable->transform->position.z;
+				// timer for button press, which makes timers for depress and portal rotation
+				timers.emplace_back(0.1f, [&, zpos](float alpha){ // press anim
+					b.drawable->transform->position.z = glm::mix(zpos, zpos - 0.2f, alpha);
+				}, [&, zpos](){ // start other anims when press done
+					timers.emplace_back(0.15f, [&](float alpha){ // depress anim
+						b.drawable->transform->position.z = glm::mix(zpos - 0.2f, zpos, alpha);
+					});
+					timers.emplace_back(1.5f, [&](float alpha){ // rotate anim
+						if (b.hit) {
+							rotate_base->rotation = glm::angleAxis(glm::mix(glm::radians(0.0f), glm::radians(180.0f), alpha), glm::vec3(0,0,1));
+						}
+						else {
+							rotate_base->rotation = glm::angleAxis(glm::mix(glm::radians(180.0f), glm::radians(360.0f), alpha), glm::vec3(0,0,1));
+						}
+					}, [&](){ // finish
+						b.active = true;
+					});
+				});
 			};
 		}
 	}
@@ -450,15 +484,15 @@ void PlayMode::update(float elapsed) {
 		}
 	}
 
-	//interaction
+	//interaction with buttons
+	constexpr float MaxButtonPollRange2 = 100.0f; //speed up checking a bit by ignoring far buttons
 	constexpr float PlayerInteractRange = 1.7f;
-	if (click.pressed && !click.last_pressed) {
-
+	{
 		// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 		glm::mat4 const &cam_to_world = player.camera->transform->make_local_to_world();
 		glm::vec4 const &cam_invdir = glm::vec4(glm::vec3(1.0f / -cam_to_world[2]), 0);
 		glm::vec4 const &cam_origin = cam_to_world[3];
-		auto bbox_hit = [&PlayerInteractRange](Scene::BoxCollider box, glm::vec3 invdir, glm::vec3 ray_origin){
+		auto bbox_hit = [&PlayerInteractRange](Scene::BoxCollider box, glm::vec3 invdir, glm::vec3 ray_origin, float range_mult){
 
 			float t1 = (box.min.x - ray_origin.x)*invdir.x;
 			float t2 = (box.max.x - ray_origin.x)*invdir.x;
@@ -472,16 +506,18 @@ void PlayMode::update(float elapsed) {
 
 			if (tmax < 0) return false;
 			if (tmin > tmax) return false;
-			if (tmin > PlayerInteractRange) return false;
+			if (tmin > PlayerInteractRange * range_mult) return false;
 
 			return true;
 		};
 
 		for (auto &b : scene.buttons) {
 			if (!b.active) continue;
+			if (glm::distance2(glm::vec3(cam_origin), b.drawable->transform->make_local_to_world()[3]) > MaxButtonPollRange2) continue;
 			glm::mat4x3 const &b_to_local = b.drawable->transform->make_world_to_local();
-			if (bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin)) {
-				if (b.on_pressed) b.on_pressed();
+			if (bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin, b.range_mult)) {
+				// if (b.has_hud) show hud
+				if (click.pressed && !click.last_pressed && b.on_pressed) b.on_pressed();
 				break;
 			}
 		}
