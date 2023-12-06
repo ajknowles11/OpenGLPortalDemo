@@ -99,6 +99,7 @@ struct PlayMode : Mode {
 	//----- Random scripting objects -----
 
 	bool milk_hint = true;
+    Scene::Transform *rotate_base = nullptr;
 
 
 	//----- Screen Shader Related -----
