@@ -60,6 +60,10 @@ MeshBuffer::MeshBuffer(std::string const &filename) {
 		std::vector< IndexEntry > index;
 		read_chunk(file, "idx0", &index);
 
+		std::vector< uint32_t > programs;
+		read_chunk(file, "prg0", &programs);
+
+		size_t prg_index = 0;
 		for (auto const &entry : index) {
 			if (!(entry.name_begin <= entry.name_end && entry.name_end <= strings.size())) {
 				throw std::runtime_error("index entry has out-of-range name begin/end");
@@ -72,6 +76,7 @@ MeshBuffer::MeshBuffer(std::string const &filename) {
 			mesh.type = GL_TRIANGLES;
 			mesh.start = entry.vertex_begin;
 			mesh.count = entry.vertex_end - entry.vertex_begin;
+			mesh.program = programs[prg_index++];
 			for (uint32_t v = entry.vertex_begin; v < entry.vertex_end; ++v) {
 				mesh.min = glm::min(mesh.min, data[v].Position);
 				mesh.max = glm::max(mesh.max, data[v].Position);

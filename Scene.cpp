@@ -90,7 +90,7 @@ glm::mat4 Scene::Camera::make_projection() const {
 //-------------------------
 
 // gets clipping plane in the middle of this portal, facing away from view_pos
-glm::vec4 Scene::Portal::get_clipping_plane(glm::vec3 view_pos) {
+glm::vec4 Scene::Portal::get_clipping_plane(glm::vec3 view_pos) const {
 	glm::mat4x3 const p_world = drawable->transform->make_local_to_world();
 	glm::vec3 p_forward = glm::normalize(p_world[1]);
 	glm::vec3 const p_origin = glm::vec3(p_world * glm::vec4(0,0,0,1));
@@ -116,13 +116,24 @@ void Scene::draw(Camera const &camera) const {
 // https://th0mas.nl/2013/05/19/rendering-recursive-portals-with-opengl/
 // https://github.com/ThomasRinsma/opengl-game-test/blob/8363bbf/src/scene.cc
 void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform, glm::vec4 const &clip_plane, GLint max_recursion_lvl, GLint recursion_lvl, Portal const *from) const {
-	
+
 	//Calculate world_to_clip and world_to_light matrices for this case
 	glm::mat4 const &world_to_clip = cam_projection * glm::mat4(cam_transform.make_world_to_local());
 	static glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f);
+
+	if (from == nullptr && current_group == nullptr) {
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
+		glStencilMask(0x00);
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_STENCIL_TEST);
+		draw_non_portals(world_to_clip, world_to_light, true, clip_plane);
+		return; //probably shouldn't happen, but maybe we'll want sometimes
+	}
+
+	std::vector<Portal*> const &local_portals = from == nullptr ? *current_group : portal_groups.at(from->group);
 	
-	for (auto &pair : portals) {
-		Scene::Portal *p = pair.second;
+	for (auto const *p : local_portals) {
 		if (p == from) continue;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
@@ -441,7 +452,7 @@ bool Scene::is_portal_visible(glm::mat4 const &world_to_clip, Portal const &port
 
 void Scene::load(std::string const &filename,
 	std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std:: string const &) > const &on_portal, 
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std:: string const &, std::string const &) > const &on_portal, 
 	std::function< void(Scene &, Transform *, std::string const &) > const &on_button) {
 
 	std::ifstream file(filename, std::ios::binary);
@@ -469,8 +480,10 @@ void Scene::load(std::string const &filename,
 		uint32_t dest_end;
 		uint32_t walk_mesh_begin;
 		uint32_t walk_mesh_end;
+		uint32_t group_begin;
+		uint32_t group_end;
 	};
-	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4 + 4 + 4 + 4, "PortalEntry is packed.");
+	static_assert(sizeof(PortalEntry) == 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4, "PortalEntry is packed.");
 	std::vector< PortalEntry > portal_meshes;
 	read_chunk(file, "prt0", &portal_meshes);
 
@@ -548,6 +561,7 @@ void Scene::load(std::string const &filename,
 	for (auto const &p : portal_meshes) {
 		std::string dest = "";
 		std::string walk_mesh = "";
+		std::string group = "";
 		if (p.transform >= hierarchy_transforms.size()) {
 			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid transform index (" + std::to_string(p.transform) + ")");
 		}
@@ -567,9 +581,15 @@ void Scene::load(std::string const &filename,
 		else {
 			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid walk mesh name indices (" + std::to_string(p.transform) + ")");
 		}
+		if (p.group_begin <= p.group_end && p.group_end <= names.size()) {
+			group = std::string(names.begin() + p.group_begin, names.begin() + p.group_end);
+		}
+		else {
+			throw std::runtime_error("scene file '" + filename + "' contains portal entry with invalid group name indices (" + std::to_string(p.transform) + ")");
+		}
 
 		if (on_portal) {
-			on_portal(*this, hierarchy_transforms[p.transform], name, dest, walk_mesh);
+			on_portal(*this, hierarchy_transforms[p.transform], name, dest, walk_mesh, group);
 		}
 	}
 
@@ -655,7 +675,7 @@ void Scene::load(std::string const &filename,
 //-------------------------
 
 Scene::Scene(std::string const &filename, std::function< void(Scene &, Transform *, std::string const &) > const &on_drawable,
-	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &) > const &on_portal, 
+	std::function< void(Scene &, Transform *, std::string const &, std::string const &, std::string const &, std::string const &) > const &on_portal, 
 	std::function< void(Scene &, Transform *, std::string const &) > const &on_button) {
 	load(filename, on_drawable, on_portal, on_button);
 }
@@ -722,6 +742,7 @@ void Scene::set(Scene const &other, std::unordered_map< Transform const *, Trans
 	portals = other.portals;
 	for (auto &p : portals) {
 		p.second->drawable->transform = transform_to_transform.at(p.second->drawable->transform);
+		portal_groups[p.second->group].emplace_back(p.second);
 	}
 
 	//copy other's buttons

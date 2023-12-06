@@ -23,6 +23,8 @@ struct Mesh {
 	GLuint start = 0; //index of first vertex
 	GLuint count = 0; //count of vertices
 
+	GLuint program = 0;
+
 	//Bounding box.
 	//useful for debug visualization and (perhaps, eventually) collision detection:
 	glm::vec3 min = glm::vec3( std::numeric_limits< float >::infinity());

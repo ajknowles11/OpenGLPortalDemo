@@ -132,7 +132,9 @@ def write_portal(obj):
     dest_name = "" if obj.portal_data.dest == None else obj.portal_data.dest.name
     portal_data += write_string(dest_name) #dest name
     portal_data += write_string(obj.portal_data.walk_mesh.data.name) #dest name
-    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + dest_name + " / " + obj.portal_data.walk_mesh.data.name)
+    assert(obj.portal_data.portal_group != "") #needs a group name
+    portal_data += write_string(obj.portal_data.portal_group) #group name
+    print("portal: " + parent_names() + obj.name + " / " + obj.data.name + " / " + dest_name + " / " + obj.portal_data.walk_mesh.data.name + " / " + obj.portal_data.portal_group)
 
 #write_button just gets a button so we can easily set up bounding box collider later:
 def write_button(obj):
