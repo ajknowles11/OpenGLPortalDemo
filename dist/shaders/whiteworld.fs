@@ -7,6 +7,11 @@ uniform sampler2D screenTexture;
 uniform sampler2D normalTexture;
 uniform sampler2D depthTexture;
 
+//fog related
+//uniform bool fogEnabled;
+//uniform vec3 fogColor;
+//uniform float fogDensity;
+
 //https://gist.github.com/Hebali/6ebfc66106459aacee6a9fac029d0115
 
 uniform int width;
@@ -68,12 +73,18 @@ void main()
 	FragColor = (normal_sobel.x > normal_threshold || !smoothD && (depth_sobel.x > depth_threshold))? vec4(vec3(0.1), 1.0) : vec4(col,1);
 
 	// Apply fog
-	vec4 fogColor = vec4(0.7412, 0.2549, 0.2549, 1.0);
+
+	//TODO: make these uniforms
+	bool fogEnabled = true;	
+	vec4 fogColor = vec4(0.8431, 0.502, 0.502, 1.0);
 	float noFogDepth = 12.5;
+
+	//now the depth buffer clears to 0.8, weirldly
 	if(depth == 0.8){
 		depth = 15.0;
 	}
-	if(depth > noFogDepth){
+	if(fogEnabled){
+		if(depth > noFogDepth){
 		//Linear Fog
 		//FragColor = mix(FragColor, fogColor, clamp((depth - noFogDepth) / (14.5 - noFogDepth), 0.0, 1.0));
 
@@ -83,6 +94,6 @@ void main()
 		float fogCoeff = 1.0/ pow(1.24, scaledDepth2);
 
 		FragColor = mix(fogColor, FragColor, fogCoeff);
+		}
 	}
-	
 } 
