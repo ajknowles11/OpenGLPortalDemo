@@ -2,6 +2,9 @@
 
 #include "gl_errors.hpp"
 #include "read_write_chunk.hpp"
+#include "load_save_png.hpp"
+
+#include "ColorTextureProgram.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -448,6 +451,104 @@ bool Scene::is_portal_visible(glm::mat4 const &world_to_clip, Portal const &port
 	}
 
 	return false;
+}
+
+Scene::Texture::Texture(std::string const &filename) {
+    load_png(filename, &size, &pixels, LowerLeftOrigin);
+}
+
+Scene::ScreenImage::ScreenImage(Texture texture, glm::vec2 origin_, glm::vec2 size_, OriginMode origin_mode_, ColorTextureProgram const *program_) 
+	: origin(origin_), size(size_), origin_mode(origin_mode_), program(program_) {
+	// pass texture data
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.size.x, texture.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture.pixels.data());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// buffer
+	glGenBuffers(1, &buffer);
+
+	// vao
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glVertexAttribPointer(
+		program->Position_vec4, 
+		3, 
+		GL_FLOAT, 
+		GL_FALSE, 
+		sizeof(Vert), 
+		(GLbyte *)0 + offsetof(Vert, position)
+	);
+	glEnableVertexAttribArray(program->Position_vec4);
+
+	glVertexAttribPointer(
+		program->TexCoord_vec2, 
+		2, 
+		GL_FLOAT, 
+		GL_FALSE, 
+		sizeof(Vert), 
+		(GLbyte *)0 + offsetof(Vert, tex_coord)
+	);
+	glEnableVertexAttribArray(program->TexCoord_vec2);
+
+	glVertexAttribPointer(
+			program->Color_vec4, //attribute
+			4, //size
+			GL_FLOAT, //type
+			GL_FALSE, //normalized
+			sizeof(Vert), //stride
+			(GLbyte *)0 + offsetof(Vert, color) //offset
+	);
+	glEnableVertexAttribArray(program->Color_vec4);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void Scene::ScreenImage::draw(float aspect) {
+	std::vector< Vert > attribs;
+
+	if (origin_mode == Center) {
+		attribs.emplace_back(glm::vec3(origin.x - (size.x * 0.5f), origin.y - aspect * (size.y * 0.5f), 0.0f), glm::vec2(0.0f, 0.0f));
+		attribs.emplace_back(glm::vec3(origin.x - (size.x * 0.5f), origin.y + aspect * (size.y * 0.5f), 0.0f), glm::vec2(0.0f, 1.0f));
+		attribs.emplace_back(glm::vec3(origin.x + (size.x * 0.5f), origin.y - aspect * (size.y * 0.5f), 0.0f), glm::vec2(1.0f, 0.0f));
+		attribs.emplace_back(glm::vec3(origin.x + (size.x * 0.5f), origin.y + aspect * (size.y * 0.5f), 0.0f), glm::vec2(1.0f, 1.0f));
+	}
+	
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vert) * attribs.size(), attribs.data(), GL_STREAM_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
+	glUseProgram(program->program);
+	glUniformMatrix4fv(program->OBJECT_TO_CLIP_mat4, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+
+	glBindTexture(GL_TEXTURE_2D, tex);
+
+
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glBindVertexArray(vao);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, (GLsizei)attribs.size());
+
+	glBindVertexArray(0);
+
+
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glUseProgram(0);
+
+	GL_ERRORS();
 }
 
 void Scene::load(std::string const &filename,
