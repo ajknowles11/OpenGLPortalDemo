@@ -128,14 +128,19 @@ struct PlayMode : Mode {
 
 	//----- Screen Shader Related -----
 
+    unsigned int currentShaderID;
+
+
 	glm::vec2 drawableSize = glm::vec2(0.0f);
 	unsigned int framebuffer;
 	unsigned int textureColorbuffer;
+    unsigned int textureVertexColorbuffer;
 	unsigned int textureNormalbuffer;
 	unsigned int textureDepthbuffer;
 	unsigned int depth_stencil_buffer;
     //unsigned int stencilbuffer;
-	unsigned int screenShaderID;
+	unsigned int whiteworldShaderID;
+    unsigned int normalShaderID;
 	unsigned int quadVAO, quadVBO;
 	float quadVertices[24] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
     // positions   // texCoords
@@ -163,7 +168,7 @@ struct PlayMode : Mode {
 		glGenTextures(1, &textureNormalbuffer);
 		glBindTexture(GL_TEXTURE_2D, textureNormalbuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, drawable_size.x, drawable_size.y, 0, GL_RGB, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureNormalbuffer, 0);
 
@@ -171,9 +176,17 @@ struct PlayMode : Mode {
 		glGenTextures(1, &textureDepthbuffer);
 		glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, drawable_size.x, drawable_size.y, 0, GL_RED, GL_FLOAT, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textureDepthbuffer, 0);
+
+        // create a vertex color attachment texture
+        glGenTextures(1, &textureVertexColorbuffer);
+        glBindTexture(GL_TEXTURE_2D, textureVertexColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, drawable_size.x, drawable_size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //GL_NEAREST
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //GL_LINEAR
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, textureVertexColorbuffer, 0);
 
 		//create a depth_stencil attachment texture
 		glGenTextures(1, &depth_stencil_buffer);
@@ -181,7 +194,7 @@ struct PlayMode : Mode {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, drawable_size.x, drawable_size.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
 		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, drawable_size.x, drawable_size.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth_stencil_buffer, 0); 
@@ -210,6 +223,29 @@ struct PlayMode : Mode {
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 	}
+
+    void SetFogParams(unsigned int shaderID, const glm::vec4& fog_color, float no_fog_depth = 12.5f, float fog_density = 1.24f)
+    {
+        glUseProgram(shaderID);
+        glUniform4fv(glGetUniformLocation(shaderID, "fogColor"), 1, &fog_color[0]);
+        glUniform1f(glGetUniformLocation(shaderID, "noFogDepth"), no_fog_depth);
+        glUniform1f(glGetUniformLocation(shaderID, "fogDensity"), fog_density);
+        glUseProgram(currentShaderID);
+    }
+
+    void EnableFog(unsigned int shaderID)
+    {
+        glUseProgram(shaderID);
+        glUniform1i(glGetUniformLocation(shaderID, "fogEnabled"), (int)true);
+        glUseProgram(currentShaderID);
+    }
+
+    void DisableFog(unsigned int shaderID)
+    {
+        glUseProgram(shaderID);
+        glUniform1i(glGetUniformLocation(shaderID, "fogEnabled"), (int)false);
+        glUseProgram(currentShaderID);
+    }
 };
 
 

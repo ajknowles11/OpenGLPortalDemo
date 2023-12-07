@@ -276,6 +276,24 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	}
 	
 
+	//Screen Shader and quad Initialization
+	Shader whiteworldShader(data_path("shaders/whiteworld.vs"), data_path("shaders/whiteworld.fs"));
+	whiteworldShader.use();
+	whiteworldShader.setInt("screenTexture", 0);
+	whiteworldShader.setInt("normalTexture", 1);
+	whiteworldShader.setInt("depthTexture", 2);
+	whiteworldShaderID = whiteworldShader.ID;
+	currentShaderID = whiteworldShaderID;
+	DisableFog(whiteworldShaderID);
+	SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.5f, 0.5f, 1.0f));
+
+	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
+	normalShader.use();
+	normalShader.setInt("screenTexture", 0);
+	normalShaderID = normalShader.ID;
+	InitQuadBuffers();
+	
+
 	//Button scripting
 	for (auto &b : scene.buttons) {
 		if (b.name == "FridgeDoor") {
@@ -488,14 +506,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	}
 
 
-	//Screen Shader and quad Initialization
-	Shader screenShader(data_path("shaders/screen.vs"), data_path("shaders/screen.fs"));
-	screenShader.use();
-	screenShader.setInt("screenTexture", 0);
-	screenShader.setInt("normalTexture", 1);
-	screenShader.setInt("depthTexture", 2);
-	screenShaderID = screenShader.ID;
-	InitQuadBuffers();
+	
+
+	//glEnable(GL_MULTISAMPLE);
+	currentShaderID = normalShaderID;
+	//currentShaderID = whiteworldShaderID;
 
 	//ScreenImage UI elements
 	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.0125f), Scene::ScreenImage::Center, color_texture_program);
@@ -689,6 +704,8 @@ void PlayMode::update(float elapsed) {
 			player.fall_to_walkmesh = false;
 			player.uses_walkmesh = true;
 			player.at = nearest_walk_point;
+			currentShaderID = whiteworldShaderID;
+			EnableFog(whiteworldShaderID);
 			ambient_sample = Sound::loop(*ambient, 0.0f);
 			timers.emplace_back(2.0f, [&](float alpha){
 				ambient_sample->volume = glm::mix(0.0f, 0.4f, alpha);
@@ -940,7 +957,18 @@ void PlayMode::handle_portals() {
 
 			// SPECIAL CASES ----------------------------
 			bool normal_tp = true;
-			if (p == scene.portals["StairPortal0"]) {
+			if (p == scene.portals["PortalFridge"]) {
+				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
+				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
+				player.velocity.z = -0.4f * player.gravity;
+				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
+				walkmesh = walkmesh_map[p->dest->on_walkmesh];
+				player.uses_walkmesh = false;
+				player.fall_to_walkmesh = true;
+				p->active = false;
+				normal_tp = false;
+			}
+			else if (p == scene.portals["StairPortal0"]) {
 				scene.portals["StairPortalA"]->dest = p;
 				scene.portals["StairPortal1"]->active = false;
 				scene.portals["StairPortal2"]->active = false;
@@ -1131,8 +1159,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
 	glClearDepth(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
-	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-	glDrawBuffers(3, drawBuffers);
+	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+	glDrawBuffers(4, drawBuffers);
 
 	GL_ERRORS();
 
@@ -1140,8 +1168,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	// TODO: consider using the Light(s) in the scene to do this
 	glUseProgram(lit_color_texture_program->program);
 	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
+	glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(glm::vec3(-7.0f, 0.5f, 2.1f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
-	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.95f)));
+	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(0.2f, 0.2f, 0.2f)));
 	glUseProgram(0);
 
 	glEnable(GL_DEPTH_TEST);
@@ -1171,9 +1200,11 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(screenShaderID);
-	glUniform1i(glGetUniformLocation(screenShaderID, "width"), drawable_size.x);
-	glUniform1i(glGetUniformLocation(screenShaderID, "height"), drawable_size.y);
+	glUseProgram(currentShaderID);
+	if(currentShaderID == whiteworldShaderID){
+		glUniform1i(glGetUniformLocation(currentShaderID, "width"), drawable_size.x);
+		glUniform1i(glGetUniformLocation(currentShaderID, "height"), drawable_size.y);
+	}
 
 	glBindVertexArray(quadVAO);
 	glActiveTexture(GL_TEXTURE0);
@@ -1182,6 +1213,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glBindTexture(GL_TEXTURE_2D, textureNormalbuffer);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, textureVertexColorbuffer);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glActiveTexture(GL_TEXTURE0);
