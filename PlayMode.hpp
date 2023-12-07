@@ -2,6 +2,7 @@
 #include "Mode.hpp"
 
 #include "Scene.hpp"
+#include "Sound.hpp"
 #include "WalkMesh.hpp"
 
 #include <glm/glm.hpp>
@@ -104,6 +105,10 @@ struct PlayMode : Mode {
 	};
 
 	std::vector<Timer> timers = std::vector<Timer>();
+
+    //----- Sound refs -------------------
+
+    std::shared_ptr<Sound::PlayingSample> ambient_sample = nullptr;
 
 	//----- Random scripting objects -----
 

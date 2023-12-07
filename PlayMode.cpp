@@ -7,7 +7,6 @@
 #include "DrawLines.hpp"
 #include "Mesh.hpp"
 #include "Load.hpp"
-#include "Sound.hpp"
 #include "gl_errors.hpp"
 #include "data_path.hpp"
 
@@ -161,6 +160,16 @@ Load< Sound::Sample > lever_off(LoadTagDefault, []() -> Sound::Sample const * {
 	return new Sound::Sample(data_path("sfx/lever-close.opus"));
 });
 
+Load< Sound::Sample > fridge_open(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/fridge-open.opus"));
+});
+
+Load< Sound::Sample > ambient(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("bgm/AmbientBGM.opus"));
+});
+
+// ---------------------------
+
 PlayMode::PlayMode() : scene(*level_scene) {
 	scene.full_tri_program = *full_tri_program;
 
@@ -220,19 +229,21 @@ PlayMode::PlayMode() : scene(*level_scene) {
 			b.on_pressed = [&](){
 				if (!intro_done) return; //don't let people continue unless we showed them all hint text
 				b.active = false;
+				Sound::play_3D(*fridge_open, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+				//play fall sound here
 				milk_hint_count = 0;
 				controls_hint_show = false;
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
-				timers.emplace_back(1.0f, [&](float alpha){
+				timers.emplace_back(1.2f, [&](float alpha){
 						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
 						player.transform->position = glm::mix(player.transform->position, target, alpha);
 						float yaw = glm::roll(player.transform->rotation); //glm moment
 						if (yaw < 0) yaw += glm::radians(360.0f);
 						player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::mix(yaw, glm::radians(180.0f), alpha))); 
 						player.camera->transform->rotation = glm::quat(glm::vec3(glm::mix(glm::pitch(player.camera->transform->rotation), 1.1f * glm::radians(90.0f), alpha), 0, 0));
-						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
+						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), (alpha * 2.0f > 1.0f ? 1.0f : alpha * 2.0f));
 					}, [&](){
 						timers.emplace_back(0.35f, [&](float alpha){
 							glm::vec3 const &start = glm::vec3(-4.5f, 0.5f, -0.2f);
@@ -271,10 +282,10 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
 					if (b.hit) {
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
 				});
@@ -290,10 +301,10 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
 					if (b.hit) {
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
 				});
@@ -311,10 +322,10 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
 				}, [&](){
 					if (b.hit) {
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
 				});
@@ -332,10 +343,10 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,0,1));
 				}, [&](){
 					if (b.hit) {
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
 				});
@@ -348,14 +359,14 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				scene.portals["DeacHard1"]->active = b.hit;
 				scene.portals["DeacHard3"]->active = b.hit;
 				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
+					float angle = b.hit ? glm::mix(0.0f, 90.0f, alpha) : glm::mix(90.0f, 0.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
 					if (b.hit) {
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
 				});
@@ -605,6 +616,10 @@ void PlayMode::update(float elapsed) {
 			player.fall_to_walkmesh = false;
 			player.uses_walkmesh = true;
 			player.at = nearest_walk_point;
+			ambient_sample = Sound::loop(*ambient, 0.0f);
+			timers.emplace_back(2.0f, [&](float alpha){
+				ambient_sample->volume = glm::mix(0.0f, 0.4f, alpha);
+			});
 		}
 		else {
 			player.transform->position = new_pos;
