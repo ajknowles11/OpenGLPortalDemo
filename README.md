@@ -1,18 +1,27 @@
-# (TODO: your game's title)
+# HELP! I am Trapped in the Psychedelic Time Dimension Again (Second Time this Week)
 
-Author: (TODO: your name)
+<img src="/Users/vvvvv/Documents/GameDev/Genious/GeniousPressKit/Bannar.png" alt="Bannar" style="zoom:80%;" />
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+### 🔴 You Have a (Milk) Drinking Problem.
 
-Screen Shot:
+Reaching for your 237th milk bottle of the day, you suddenly find yourself in a psychedelic time dimension where space is fragmented and reassembled through portals. The familiar laws of spatial connectivity crumble under your relentless quest for milk!
 
-![Screen Shot](screenshot.png)
+### 🔴 Venture Through A Non-Euclidean Space to Escape!
 
-How To Play:
+Experience the mind-bending puzzles of ***HELP! I'm Trapped in the Psychedelic Time Dimension Again (Second Time This Week)***, a non-Euclidean puzzle game inspired by genre classics like *Antichamber* and *Manifold Garden*. Drawing from the essence of both titles, our game embraces the duality of portals. Sometimes, you must identify subtle spatial anomalies, while at other times, you're faced with obviously distorted spaces. Your challenge is to manipulate these portals to forge your path forward.
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+### 🔴 Escape Guide
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+- WASD: Move
+- Left Mouse Click: Interact
+- Drink milk
+- Scream anyone who likes to drink orange juice that has pulp 
 
-This game was built with [NEST](NEST.md).
+### 🔴 Credits
 
+- Andrew Knowles - Code Architect
+- Ziyu Li - Design Lead
+- Haoze Sun - Artist
+- Haoxi Zhang - Project Manager
+
+This game was developed (almost) from scratch using the OpenGL API, with some functionalities derived from the CMU 15-466 course codebase. In our team, everyone codes.
