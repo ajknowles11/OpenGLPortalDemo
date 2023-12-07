@@ -285,7 +285,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	whiteworldShaderID = whiteworldShader.ID;
 	currentShaderID = whiteworldShaderID;
 	DisableFog(whiteworldShaderID);
-	SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.5f, 0.5f, 1.0f));
+	SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f), 14.9f, 2.0f);
 
 	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
 	normalShader.use();
