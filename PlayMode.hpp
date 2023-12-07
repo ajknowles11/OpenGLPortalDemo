@@ -114,6 +114,11 @@ struct PlayMode : Mode {
     std::shared_ptr<Sound::PlayingSample> ambient_sample = nullptr;
     std::shared_ptr<Sound::PlayingSample> home_sample = nullptr;
 
+    //----- Textures ---------------------
+
+    GLuint milk_tex = 0;
+    GLuint shadow_tex = 0;
+
 	//----- Random scripting objects -----
 
     bool paused = false;

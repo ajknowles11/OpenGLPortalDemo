@@ -150,6 +150,15 @@ Load< Scene::Texture > pause_texture(LoadTagDefault, []() -> Scene::Texture cons
 	return new Scene::Texture(data_path("textures/pause.png"));
 });
 
+Load< Scene::Texture > milk_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/milk.png"));
+});
+
+Load< Scene::Texture > shadow_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/shadow.png"));
+});
+
+
 // audio ---------------------
 
 Load< Sound::Sample > lever_on(LoadTagDefault, []() -> Sound::Sample const * {
@@ -259,7 +268,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		}
 	}
 
-	walkmesh = walkmesh_map["ApartmentWalkMesh"];
+	// walkmesh = walkmesh_map["ApartmentWalkMesh"];
+	walkmesh = walkmesh_map["Milkwalk"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
@@ -304,6 +314,45 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	normalShader.setInt("screenTexture", 0);
 	normalShaderID = normalShader.ID;
 	InitQuadBuffers();
+
+
+	// Textures
+	{	//milk
+		glGenTextures(1, &milk_tex);
+
+		glBindTexture(GL_TEXTURE_2D, milk_tex);
+		
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, milk_texture->size.x, milk_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, milk_texture->pixels.data());
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	{	//shadow
+		glGenTextures(1, &shadow_tex);
+
+		glBindTexture(GL_TEXTURE_2D, shadow_tex);
+		
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, shadow_texture->size.x, shadow_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, shadow_texture->pixels.data());
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	for (auto &d : scene.drawables) {
+		if (d.transform->name.substr(0, 2) == "m_") {
+			d.pipeline.textures->texture = milk_tex;
+		}
+		else if (d.transform->name == "ShadowCircle") {
+			d.pipeline.textures->texture = shadow_tex;
+		}
+	}
 	
 
 	//Button scripting
