@@ -180,6 +180,38 @@ Load< Sound::Sample > boomsfx(LoadTagDefault, []() -> Sound::Sample const * {
 	return new Sound::Sample(data_path("sfx/boom.opus"));
 });
 
+Load< Sound::Sample > run1sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/run-L-1.opus"));
+});
+
+Load< Sound::Sample > run2sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/run-L-2.opus"));
+});
+
+Load< Sound::Sample > run3sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/run-L-3.opus"));
+});
+
+Load< Sound::Sample > run4sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/run-R-1.opus"));
+});
+
+Load< Sound::Sample > walk1sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/walk-L-1.opus"));
+});
+
+Load< Sound::Sample > walk2sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/walk-L-2.opus"));
+});
+
+Load< Sound::Sample > walk3sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/walk-L-3.opus"));
+});
+
+Load< Sound::Sample > walk4sfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/footstep/walk-R-1.opus"));
+});
+
 
 // ---------------------------
 
@@ -702,6 +734,20 @@ void PlayMode::update(float elapsed) {
 		//make it so that moving diagonally doesn't go faster:
 		if (move != glm::vec2(0.0f)) move = shift.pressed ? 
 			glm::normalize(move) * PlayerSprintSpeed * elapsed : glm::normalize(move) * PlayerSpeed * elapsed;
+		
+		footstep_acc += glm::length(move);
+		if (footstep_acc >= footstep_time) {
+			footstep_acc = 0;
+			int index = std::rand() % 4;
+			if (shift.pressed) {
+				static Sound::Sample const *arr[4] = {run1sfx, run2sfx, run3sfx, run4sfx};
+				Sound::play(*arr[index], 0.35f);
+			}
+			else {
+				static Sound::Sample const *arr[4] = {walk1sfx, walk2sfx, walk3sfx, walk4sfx};
+				Sound::play(*arr[index], 0.2f);
+			}
+		}
 
 		//get move in world coordinate system:
 		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);

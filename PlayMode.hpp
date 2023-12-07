@@ -108,6 +108,9 @@ struct PlayMode : Mode {
 
     //----- Sound refs -------------------
 
+    float footstep_acc = 0;
+    float footstep_time = 2.5f;
+
     std::shared_ptr<Sound::PlayingSample> ambient_sample = nullptr;
     std::shared_ptr<Sound::PlayingSample> home_sample = nullptr;
 
