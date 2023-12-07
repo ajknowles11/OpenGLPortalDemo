@@ -151,7 +151,15 @@ Load< Scene::Texture > pause_texture(LoadTagDefault, []() -> Scene::Texture cons
 	return new Scene::Texture(data_path("textures/pause.png"));
 });
 
-// ---------------------------
+// audio ---------------------
+
+Load< Sound::Sample > lever_on(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/lever-open.opus"));
+});
+
+Load< Sound::Sample > lever_off(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/lever-close.opus"));
+});
 
 PlayMode::PlayMode() : scene(*level_scene) {
 	scene.full_tri_program = *full_tri_program;
@@ -258,10 +266,16 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.active = false;
 				scene.portals["HallExit"]->active = b.hit; //we used to activate after lever anim finished, but could walk through deac'd portals quickly in some cases.
 				//we could also init timer once (without auto start/delete) and just save a ref, but it's not a big deal
-				timers.emplace_back(0.15f, [&](float alpha){
+				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(0.0f, 90.0f, alpha) : glm::mix(90.0f, 0.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
 					b.active = true;
 				});
 			};
@@ -271,10 +285,16 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.hit = !b.hit;
 				b.active = false;
 				scene.portals["FlipExit"]->active = b.hit;
-				timers.emplace_back(0.15f, [&](float alpha){
+				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
 					b.active = true;
 				});
 			};
@@ -286,10 +306,16 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.active = false;
 				scene.portals["Deac1"]->active = b.hit;
 				scene.portals["Deac2"]->active = b.hit;
-				timers.emplace_back(0.15f, [&](float alpha){
+				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(90.0f, 0.0f, alpha) : glm::mix(0.0f, 90.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
 				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
 					b.active = true;
 				});
 			};
@@ -301,10 +327,16 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.active = false;
 				scene.portals["Deac3"]->active = b.hit;
 				scene.portals["Deac4"]->active = b.hit;
-				timers.emplace_back(0.15f, [&](float alpha){
+				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(90.0f, 0.0f, alpha) : glm::mix(0.0f, 90.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,0,1));
 				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
 					b.active = true;
 				});
 			};
@@ -315,10 +347,16 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.active = false;
 				scene.portals["DeacHard1"]->active = b.hit;
 				scene.portals["DeacHard3"]->active = b.hit;
-				timers.emplace_back(0.15f, [&](float alpha){
+				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
 					b.active = true;
 				});
 			};
@@ -330,10 +368,16 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.active = false;
 				scene.portals["DeacHard0"]->active = b.hit;
 				scene.portals["DeacHard2"]->active = b.hit;
-				timers.emplace_back(0.15f, [&](float alpha){
+				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(-90.0f, 0.0f, alpha) : glm::mix(0.0f, -90.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
 				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
 					b.active = true;
 				});
 			};
@@ -742,6 +786,13 @@ void PlayMode::update(float elapsed) {
 	}
 
 	handle_portals();
+
+	{ //update listener to camera position:
+		glm::mat4x3 frame = player.camera->transform->make_local_to_world();
+		glm::vec3 frame_right = frame[0];
+		glm::vec3 frame_at = frame[3];
+		Sound::listener.set_position_right(frame_at, frame_right, 1.0f / 60.0f);
+	}
 
 	for (auto &t : timers) {
 		if (t.active) {
