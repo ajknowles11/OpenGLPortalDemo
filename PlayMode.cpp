@@ -233,8 +233,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
-	//player.transform->position = glm::vec3(-2.0f, 0.0f, 0.0f);
-	player.transform->position = glm::vec3(166.0f, -70.0f, 0.0f);
+	player.transform->position = glm::vec3(-2.0f, 0.0f, 0.0f);
 	player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(-70.0f)));
 
 	//create a player camera attached to a child of the player transform:
@@ -260,16 +259,14 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		}
 	}
 
-	//walkmesh = walkmesh_map["ApartmentWalkMesh"];
-	walkmesh = walkmesh_map["Hard0"];
+	walkmesh = walkmesh_map["ApartmentWalkMesh"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
-	//scene.current_group = &scene.portal_groups["Start"];
-	scene.current_group = &scene.portal_groups["Hard"];
+	scene.current_group = &scene.portal_groups["Start"];
 
 	scene.portals["HallExit"]->active = false;
 	scene.portals["FlipExit"]->active = false;
