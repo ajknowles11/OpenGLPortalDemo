@@ -68,9 +68,9 @@ void main()
 	float minRGB = min(col.r, min(col.g, col.b));
 	float lum = 0.5 * (maxRGB + minRGB);
 	float sat = (maxRGB - minRGB) / (1.0 - abs(2.0 * lum - 1.0));
-	if(sat < 0.25){
-		col = vec3(1);
-	}
+	// if(sat < 0.25){
+	// 	col = vec3(1);
+	// }
 	FragColor = (normal_sobel.x > normal_threshold || !smoothD && (depth_sobel.x > depth_threshold))? vec4(vec3(0.1), 1.0) : vec4(col,1);
 
 	// Apply fog

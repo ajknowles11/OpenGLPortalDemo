@@ -364,6 +364,13 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		else if (d.transform->name == "ShadowCircle") {
 			d.pipeline.textures->texture = shadow_tex;
 		}
+		else if(d.transform->name == "player"){
+			player_start = d.transform->position;
+			std::cout << "player start: " << player_start.x << ", " << player_start.y << ", " << player_start.z << std::endl;
+		}else if(d.transform->name == "Cube.044"){
+			player_end = d.transform->position;
+			std::cout << "player end: " << player_end.x << ", " << player_end.y << ", " << player_end.z << std::endl;
+		}
 	}
 	
 
@@ -1113,6 +1120,16 @@ void PlayMode::update(float elapsed) {
 		if (timers[i-1].queued_for_delete) {
 			timers.erase(timers.begin() + i - 1);
 		}
+	}
+
+	//Compare player position to add fog
+	if(glm::distance(player.transform->position, player_start) < 5 ){
+		EnableFog(whiteworldShaderID);
+		SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.4f, 0.4f, 1.0f), 12.5f, 1.8f);
+	}
+
+	if(glm::distance(player.transform->position, player_end) < 5 ){
+		DisableFog(whiteworldShaderID);
 	}
 }
 

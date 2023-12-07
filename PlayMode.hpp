@@ -164,6 +164,9 @@ struct PlayMode : Mode {
      1.0f,  1.0f,  1.0f, 1.0f
 	};
 
+    glm::vec3 player_start = glm::vec3(0.0f);
+    glm::vec3 player_end = glm::vec3(0.0f);
+
 	void InitFrameBuffer(glm::uvec2 const &drawable_size){
 		glGenFramebuffers(1, &framebuffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
