@@ -124,6 +124,7 @@ struct PlayMode : Mode {
 	uint8_t milk_hint_count = 0;
     bool intro_done = false;
     Scene::Transform *rotate_base = nullptr;
+    Scene::Transform *hard_rot_base = nullptr;
 
 
 	//----- Screen Shader Related -----

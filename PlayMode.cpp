@@ -233,7 +233,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
-	player.transform->position = glm::vec3(-2.0f, 0.0f, 0.0f);
+	//player.transform->position = glm::vec3(-2.0f, 0.0f, 0.0f);
+	player.transform->position = glm::vec3(166.0f, -70.0f, 0.0f);
 	player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(-70.0f)));
 
 	//create a player camera attached to a child of the player transform:
@@ -260,7 +261,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	}
 
 	//walkmesh = walkmesh_map["ApartmentWalkMesh"];
-	walkmesh = walkmesh_map["DeacHard"];
+	walkmesh = walkmesh_map["Hard0"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
@@ -268,17 +269,24 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	}
 
 	//scene.current_group = &scene.portal_groups["Start"];
-	scene.current_group = &scene.portal_groups["DeacHard"];
+	scene.current_group = &scene.portal_groups["Hard"];
 
 	scene.portals["HallExit"]->active = false;
 	scene.portals["FlipExit"]->active = false;
 	scene.portals["DeacHard1"]->active = false;
 	scene.portals["DeacHard3"]->active = false;
 	scene.portals["RotateExit"]->active = false;
+	scene.portals["HardExit"]->active = false;
+
+
+	scene.portals["HardBlue1"]->on_walkmesh = "Hard0"; //needed to set it to 3 for walkmesh import to work properly
 
 	for (auto &t : scene.transforms) {
 		if (t.name == "RotateBase") {
 			rotate_base = &t;
+		}
+		else if (t.name == "HardRotBase") {
+			hard_rot_base = &t;
 		}
 	}
 	
@@ -532,6 +540,72 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.active = true;
 				});
 			};
+		}
+		else if (b.name == "HardLever") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				b.active = false;
+				scene.portals["HardExit"]->active = b.hit;
+				timers.emplace_back(0.12f, [&](float alpha){
+					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
+				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["HardExit"]->drawable->transform->make_local_to_world()[3]);
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["HardExit"]->drawable->transform->make_local_to_world()[3]);
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					b.active = true;
+				});
+			};
+		}
+		else if (b.name == "HardB") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				b.active = false;
+				float const &zpos = b.drawable->transform->position.z;
+				// timer for button press, which makes timers for depress and portal rotation
+				timers.emplace_back(0.1f, [&, zpos](float alpha){ // press anim
+					b.drawable->transform->position.z = glm::mix(zpos, zpos - 0.2f, alpha);
+				}, [&, zpos](){ // start other anims when press done
+					Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					Sound::play_3D(*rotatesfx, 0.4f, hard_rot_base->make_local_to_world()[3], 10.0f);
+					timers.emplace_back(0.15f, [&](float alpha){ // depress anim
+						b.drawable->transform->position.z = glm::mix(zpos - 0.2f, zpos, alpha);
+					});
+					timers.emplace_back(1.2f, [&](float alpha){ // rotate anim
+						if (b.hit) {
+							hard_rot_base->rotation = glm::angleAxis(glm::mix(glm::radians(0.0f), glm::radians(-90.0f), alpha), glm::vec3(0,1,0));
+						}
+						else {
+							hard_rot_base->rotation = glm::angleAxis(glm::mix(glm::radians(-90.0f), glm::radians(0.0f), alpha), glm::vec3(0,1,0));
+						}
+					}, [&](){ // finish
+						b.active = true;
+					});
+					// fix walkmesh stuff
+					if (b.hit) {					
+						scene.portals["HardBlue1"]->on_walkmesh = "Hard3";
+						scene.portals["HardW0"]->on_walkmesh = "Hard3";
+						if (walkmesh == walkmesh_map["Hard2"]) {
+							walkmesh = walkmesh_map["Hard3"];
+							player.at = walkmesh->nearest_walk_point(player.transform->position);
+						}
+					}
+					else {
+						scene.portals["HardBlue1"]->on_walkmesh = "Hard0";
+						scene.portals["HardW0"]->on_walkmesh = "Hard2";
+						if (walkmesh == walkmesh_map["Hard3"]) {
+							walkmesh = walkmesh_map["Hard2"];
+							player.at = walkmesh->nearest_walk_point(player.transform->position);
+						}
+					}
+				});
+			};
+
 		}
 	}
 
@@ -1148,6 +1222,14 @@ void PlayMode::handle_portals() {
 				ambient_sample->volume = 0.4f;
 
 				scene.default_draw_recursion_max = 0;
+			}
+			else if (p == scene.portals["HardW0"]) {
+				scene.portals["HardRed0"]->on_walkmesh = "Hard1";
+				scene.portals["HardRed1"]->on_walkmesh = "Hard1";
+			}
+			else if (p == scene.portals["HardW1"]) {
+				scene.portals["HardRed0"]->on_walkmesh = "Hard0";
+				scene.portals["HardRed1"]->on_walkmesh = "Hard0";
 			}
 
 
