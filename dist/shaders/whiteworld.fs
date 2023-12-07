@@ -8,9 +8,10 @@ uniform sampler2D normalTexture;
 uniform sampler2D depthTexture;
 
 //fog related
-//uniform bool fogEnabled;
-//uniform vec3 fogColor;
-//uniform float fogDensity;
+uniform bool fogEnabled;
+uniform vec4 fogColor;
+uniform float noFogDepth;
+uniform float fogDensity;
 
 //https://gist.github.com/Hebali/6ebfc66106459aacee6a9fac029d0115
 
@@ -74,15 +75,11 @@ void main()
 
 	// Apply fog
 
-	//TODO: make these uniforms
-	bool fogEnabled = true;	
-	vec4 fogColor = vec4(0.8431, 0.502, 0.502, 1.0);
-	float noFogDepth = 12.5;
-
 	//now the depth buffer clears to 0.8, weirldly
 	if(depth == 0.8){
 		depth = 15.0;
 	}
+
 	if(fogEnabled){
 		if(depth > noFogDepth){
 		//Linear Fog
@@ -91,7 +88,7 @@ void main()
 		//Exponential (Squared) Fog
 		float scaledDepth = mix(0, 5, clamp((depth - noFogDepth) / (15 - noFogDepth), 0, 1));
 		float scaledDepth2 = scaledDepth * scaledDepth;
-		float fogCoeff = 1.0/ pow(1.24, scaledDepth2);
+		float fogCoeff = 1.0/ pow(fogDensity, scaledDepth2);
 
 		FragColor = mix(fogColor, FragColor, fogCoeff);
 		}

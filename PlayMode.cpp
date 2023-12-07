@@ -186,6 +186,9 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	whiteworldShader.setInt("normalTexture", 1);
 	whiteworldShader.setInt("depthTexture", 2);
 	whiteworldShaderID = whiteworldShader.ID;
+	currentShaderID = whiteworldShaderID;
+	DisableFog(whiteworldShaderID);
+	SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.5f, 0.5f, 1.0f));
 
 	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
 	normalShader.use();
@@ -233,8 +236,6 @@ PlayMode::PlayMode() : scene(*level_scene) {
 							player.uses_walkmesh = false;
 							player.fall_to_walkmesh = true;
 							p->active = false;
-
-							currentShaderID = whiteworldShaderID;
 						});
 					
 				});
@@ -461,6 +462,8 @@ void PlayMode::update(float elapsed) {
 			player.fall_to_walkmesh = false;
 			player.uses_walkmesh = true;
 			player.at = nearest_walk_point;
+			currentShaderID = whiteworldShaderID;
+			EnableFog(whiteworldShaderID);
 		}
 		else {
 			player.transform->position = new_pos;

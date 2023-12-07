@@ -199,6 +199,29 @@ struct PlayMode : Mode {
 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
 	}
+
+    void SetFogParams(unsigned int shaderID, const glm::vec4& fog_color, float no_fog_depth = 12.5f, float fog_density = 1.24f)
+    {
+        glUseProgram(shaderID);
+        glUniform4fv(glGetUniformLocation(shaderID, "fogColor"), 1, &fog_color[0]);
+        glUniform1f(glGetUniformLocation(shaderID, "noFogDepth"), no_fog_depth);
+        glUniform1f(glGetUniformLocation(shaderID, "fogDensity"), fog_density);
+        glUseProgram(currentShaderID);
+    }
+
+    void EnableFog(unsigned int shaderID)
+    {
+        glUseProgram(shaderID);
+        glUniform1i(glGetUniformLocation(shaderID, "fogEnabled"), (int)true);
+        glUseProgram(currentShaderID);
+    }
+
+    void DisableFog(unsigned int shaderID)
+    {
+        glUseProgram(shaderID);
+        glUniform1i(glGetUniformLocation(shaderID, "fogEnabled"), (int)false);
+        glUseProgram(currentShaderID);
+    }
 };
 
 
