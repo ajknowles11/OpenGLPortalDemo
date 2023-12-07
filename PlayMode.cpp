@@ -220,7 +220,9 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				timers.emplace_back(1.0f, [&](float alpha){
 						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
 						player.transform->position = glm::mix(player.transform->position, target, alpha);
-						player.transform->rotation = glm::lerp(player.transform->rotation, glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1)), alpha);// fix this
+						float yaw = glm::roll(player.transform->rotation); //glm moment
+						if (yaw < 0) yaw += glm::radians(360.0f);
+						player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::mix(yaw, glm::radians(180.0f), alpha))); 
 						player.camera->transform->rotation = glm::quat(glm::vec3(glm::mix(glm::pitch(player.camera->transform->rotation), 1.1f * glm::radians(90.0f), alpha), 0, 0));
 						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
 					}, [&](){
