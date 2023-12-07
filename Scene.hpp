@@ -24,6 +24,8 @@
 #include <vector>
 #include <unordered_map>
 
+struct ColorTextureProgram;
+
 struct Scene {
 	struct Transform {
 		//Transform names are useful for debugging and looking up locations in a loaded scene:
@@ -242,6 +244,42 @@ struct Scene {
 
 	// Test if portal is visible in view frustum
 	bool is_portal_visible(glm::mat4 const &world_to_clip, Portal const &portal) const;
+
+	struct Texture {
+		Texture(std::string const &filename);
+		~Texture() {}
+		std::vector< glm::u8vec4 > pixels;
+    	glm::uvec2 size = glm::vec2(0);
+	};
+
+	struct ScreenImage {
+		enum OriginMode {
+			Center
+		};
+		//setup code inspired by Jim, mainly LitColorTextureProgram and a sample on Discord
+		struct Vert {
+			Vert(glm::vec3 const &position_, glm::vec2 const &tex_coord_) : position(position_), tex_coord(tex_coord_), color(1.0f) {}
+			glm::vec3 position;
+			glm::vec2 tex_coord;
+			glm::vec4 color;
+		};
+		static_assert(sizeof(Vert) == 36, "Vert is packed");
+
+		ScreenImage() {}
+		ScreenImage(Texture texture, glm::vec2 origin_, glm::vec2 size_, OriginMode origin_mode_, ColorTextureProgram const *program_);
+		~ScreenImage() {}
+		GLuint tex = 0;
+		GLuint buffer = 0;
+		GLuint vao = 0;
+		ColorTextureProgram const *program = nullptr;
+
+		glm::vec2 origin;
+		glm::vec2 size;
+
+		OriginMode origin_mode;
+
+		void draw(float aspect);
+	};
 
 	//add transforms/objects/cameras from a scene file to this scene:
 	// the 'on_drawable' callback gives your code a chance to look up mesh data and make Drawables:

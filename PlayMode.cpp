@@ -125,6 +125,12 @@ Load< Scene::FullTriProgram > full_tri_program(LoadTagEarly, []() -> Scene::Full
 	return new Scene::FullTriProgram();
 });
 
+// textures ------------------
+
+Load< Scene::Texture > cursor_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/cursor.png"));
+});
+
 PlayMode::PlayMode() : scene(*level_scene) {
 	scene.full_tri_program = *full_tri_program;
 
@@ -345,6 +351,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	screenShaderID = screenShader.ID;
 	InitQuadBuffers();
 
+	//ScreenImage UI elements
+	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.02f), Scene::ScreenImage::Center, color_texture_program);
+
+	mouse_prompt = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.2f), Scene::ScreenImage::Center, color_texture_program);
+
 }
 
 PlayMode::~PlayMode() {
@@ -511,12 +522,13 @@ void PlayMode::update(float elapsed) {
 			return true;
 		};
 
+		player.show_mouse_prompt = false;
 		for (auto &b : scene.buttons) {
 			if (!b.active) continue;
 			if (glm::distance2(glm::vec3(cam_origin), b.drawable->transform->make_local_to_world()[3]) > MaxButtonPollRange2) continue;
 			glm::mat4x3 const &b_to_local = b.drawable->transform->make_world_to_local();
 			if (bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin, b.range_mult)) {
-				// if (b.has_hud) show hud
+				player.show_mouse_prompt = true;
 				if (click.pressed && !click.last_pressed && b.on_pressed) b.on_pressed();
 				break;
 			}
@@ -942,10 +954,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+	// now draw UI elements
+	float aspect = float(drawable_size.x) / float(drawable_size.y);
+
+	// cursor
+	if (player.show_mouse_prompt) {
+		mouse_prompt.draw(aspect);
+	}
+	else {
+		cursor.draw(aspect);
+	}
 
 	{ //use DrawLines to overlay some text:
 		glDisable(GL_DEPTH_TEST);
-		float aspect = float(drawable_size.x) / float(drawable_size.y);
 		DrawLines lines(glm::mat4(
 			1.0f / aspect, 0.0f, 0.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,

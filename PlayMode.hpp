@@ -55,7 +55,12 @@ struct PlayMode : Mode {
 		
 		glm::vec3 velocity;
 		float gravity = 7.5f;
+
+        bool show_mouse_prompt = false;
 	} player;
+
+    Scene::ScreenImage cursor;
+    Scene::ScreenImage mouse_prompt;
 
 	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
