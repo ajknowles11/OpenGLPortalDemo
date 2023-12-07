@@ -147,13 +147,13 @@ struct Scene {
 			on_walkmesh(on_walkmesh_), dest(dest_), group(group_) {}
 		~Portal() {}
 		Drawable *drawable = nullptr;
+		std::string on_walkmesh;
 		Portal *dest = nullptr;
 		BoxCollider box;
 		bool player_in_front = false;
 		bool sleeping = false;
 
 		bool active = true;
-		std::string on_walkmesh;
 		std::string group;
 
 		glm::vec4 get_clipping_plane(glm::vec3 view_pos) const;

@@ -268,8 +268,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		}
 	}
 
-	// walkmesh = walkmesh_map["ApartmentWalkMesh"];
-	walkmesh = walkmesh_map["Milkwalk"];
+	walkmesh = walkmesh_map["ApartmentWalkMesh"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
@@ -868,13 +867,12 @@ void PlayMode::update(float elapsed) {
 
 	//interaction with buttons
 	constexpr float MaxButtonPollRange2 = 100.0f; //speed up checking a bit by ignoring far buttons
-	constexpr float PlayerInteractRange = 1.7f;
 	{
 		// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 		glm::mat4 const &cam_to_world = player.camera->transform->make_local_to_world();
 		glm::vec4 const &cam_invdir = glm::vec4(glm::vec3(1.0f / -cam_to_world[2]), 0);
 		glm::vec4 const &cam_origin = cam_to_world[3];
-		auto bbox_hit = [&PlayerInteractRange](Scene::BoxCollider box, glm::vec3 invdir, glm::vec3 ray_origin, float range_mult){
+		auto bbox_hit = [](Scene::BoxCollider box, glm::vec3 invdir, glm::vec3 ray_origin, float range_mult){
 
 			float t1 = (box.min.x - ray_origin.x)*invdir.x;
 			float t2 = (box.max.x - ray_origin.x)*invdir.x;
@@ -888,7 +886,7 @@ void PlayMode::update(float elapsed) {
 
 			if (tmax < 0) return false;
 			if (tmin > tmax) return false;
-			if (tmin > PlayerInteractRange * range_mult) return false;
+			if (tmin > 1.7f * range_mult) return false;
 
 			return true;
 		};
@@ -1333,8 +1331,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
-
-	glm::mat4x3 const player_cam_world = player.camera->transform->make_local_to_world();
 
 	scene.draw(*player.camera);
 
