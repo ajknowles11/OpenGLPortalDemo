@@ -66,6 +66,9 @@ struct PlayMode : Mode {
     Scene::ScreenImage milk_hint;
     Scene::ScreenImage controls_hint;
     Scene::ScreenImage pause_text;
+    Scene::ScreenImage title_text;
+    Scene::ScreenImage credits_text;
+    Scene::ScreenImage thanks_text;
 
 	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
@@ -130,6 +133,8 @@ struct PlayMode : Mode {
     bool intro_done = false;
     Scene::Transform *rotate_base = nullptr;
     Scene::Transform *hard_rot_base = nullptr;
+
+    int outro_count = 0;
 
 
 	//----- Screen Shader Related -----
