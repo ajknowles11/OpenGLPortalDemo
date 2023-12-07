@@ -23,15 +23,15 @@ void make_kernel(inout vec4 n[9], sampler2D tex, vec2 coord)
 	float w = 0.5 / width;
 	float h = 0.5 / height;
 
-	n[0] = vec4(texture2D(tex, coord + vec2( -w, -h)));
-	n[1] = vec4(texture2D(tex, coord + vec2(0.0, -h)));
-	n[2] = vec4(texture2D(tex, coord + vec2(  w, -h)));
-	n[3] = vec4(texture2D(tex, coord + vec2( -w, 0.0)));
-	n[4] = vec4(texture2D(tex, coord));
-	n[5] = vec4(texture2D(tex, coord + vec2(  w, 0.0)));
-	n[6] = vec4(texture2D(tex, coord + vec2( -w, h)));
-	n[7] = vec4(texture2D(tex, coord + vec2(0.0, h)));
-	n[8] = vec4(texture2D(tex, coord + vec2(  w, h)));
+	n[0] = vec4(texture(tex, coord + vec2( -w, -h)));
+	n[1] = vec4(texture(tex, coord + vec2(0.0, -h)));
+	n[2] = vec4(texture(tex, coord + vec2(  w, -h)));
+	n[3] = vec4(texture(tex, coord + vec2( -w, 0.0)));
+	n[4] = vec4(texture(tex, coord));
+	n[5] = vec4(texture(tex, coord + vec2(  w, 0.0)));
+	n[6] = vec4(texture(tex, coord + vec2( -w, h)));
+	n[7] = vec4(texture(tex, coord + vec2(0.0, h)));
+	n[8] = vec4(texture(tex, coord + vec2(  w, h)));
 }
 
 bool smoothDepth(vec4 n[9], float threshold){
