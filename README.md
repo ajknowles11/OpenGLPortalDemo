@@ -1,6 +1,6 @@
 # HELP! I am Trapped in the Psychedelic Time Dimension Again (Second Time this Week)
 
-<img src="/Users/vvvvv/Documents/GameDev/Genious/GeniousPressKit/Bannar.png" alt="Bannar" style="zoom:80%;" />
+<img src="GeniousPressKit/Bannar.png" alt="Bannar" style="zoom:80%;" />
 
 ### 🔴 You Have a (Milk) Drinking Problem.
 
