@@ -212,6 +212,14 @@ Load< Sound::Sample > walk4sfx(LoadTagDefault, []() -> Sound::Sample const * {
 	return new Sound::Sample(data_path("sfx/footstep/walk-R-1.opus"));
 });
 
+Load< Sound::Sample > portal_onsfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/portal-on.opus"));
+});
+
+Load< Sound::Sample > portal_offsfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/portal-off.opus"));
+});
+
 
 // ---------------------------
 
@@ -328,9 +336,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
 					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.6f, b.drawable->transform->make_local_to_world()[3] + glm::vec3(-7.0f, 0.0f, 0.0f), 10.0f); //play coming from stairs
 						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
+						Sound::play_3D(*portal_offsfx, 0.6f, b.drawable->transform->make_local_to_world()[3] + glm::vec3(-7.0f, 0.0f, 0.0f), 10.0f);
 						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
@@ -347,9 +357,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
 					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["FlipExit"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["FlipExit"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
@@ -368,9 +380,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
 				}, [&](){
 					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["Deac1"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["Deac1"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
@@ -389,9 +403,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,0,1));
 				}, [&](){
 					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["Deac3"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["Deac3"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
@@ -409,9 +425,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
 					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["DeacHard1"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["DeacHard1"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
@@ -430,9 +448,11 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
 				}, [&](){
 					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["DeacHard0"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["DeacHard0"]->drawable->transform->make_local_to_world()[3]);
 						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 					}
 					b.active = true;
