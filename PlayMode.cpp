@@ -143,6 +143,10 @@ Load< Scene::Texture > hint_texture(LoadTagDefault, []() -> Scene::Texture const
 	return new Scene::Texture(data_path("textures/hint.png"));
 });
 
+Load< Scene::Texture > controls_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/controls.png"));
+});
+
 // ---------------------------
 
 PlayMode::PlayMode() : scene(*level_scene) {
@@ -203,7 +207,9 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		if (b.name == "FridgeDoor") {
 			b.on_pressed = [&](){
 				b.active = false;
+				touched_fridge = true;
 				milk_hint_count = 0;
+				controls_hint_show = false;
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
@@ -373,6 +379,10 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	milk_hint0 = Scene::ScreenImage(*hint0_texture, glm::vec2(0.0f, -0.9f), glm::vec2(milk_hint_width, 0.3f), Scene::ScreenImage::Bottom, color_texture_program);
 	milk_hint = Scene::ScreenImage(*hint_texture, glm::vec2(0.0f, -0.9f), glm::vec2(milk_hint_width, 0.3f), Scene::ScreenImage::Bottom, color_texture_program);
 
+	constexpr float cont_hint_width = 0.2f * 16.0f / 9.0f;
+
+	controls_hint = Scene::ScreenImage(*controls_texture, glm::vec2(0.9f, 0.9f), glm::vec2(cont_hint_width, 0.2f), Scene::ScreenImage::TopRight, color_texture_program);
+
 }
 
 PlayMode::~PlayMode() {
@@ -462,6 +472,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			if (!started_playing) {
 				started_playing = true;
 				timers.emplace_back(5.5f, [&](float alpha){
+					if (touched_fridge) return;
 					if (alpha >= 3.5f / 5.5f) {
 						milk_hint_count = 2;
 					}
@@ -469,7 +480,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 						milk_hint_count = 1;
 					}
 				}, [&](){
-					move_hint = true;
+					if (touched_fridge) return;
+					controls_hint_show = true;
 				});
 			}
 			// unpause if paused
@@ -1006,6 +1018,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 	else if (milk_hint_count == 2) {
 		milk_hint.draw(aspect);
+	}
+
+	if (controls_hint_show) {
+		controls_hint.draw(aspect);
 	}
 
 	{ //use DrawLines to overlay some text:

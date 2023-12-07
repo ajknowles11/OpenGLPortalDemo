@@ -255,7 +255,8 @@ struct Scene {
 	struct ScreenImage {
 		enum OriginMode {
 			Center,
-			Bottom
+			Bottom,
+			TopRight
 		};
 		//setup code inspired by Jim, mainly LitColorTextureProgram and a sample on Discord
 		struct Vert {
