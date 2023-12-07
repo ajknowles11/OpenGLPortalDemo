@@ -16,6 +16,7 @@ Load< LitColorTextureProgram > lit_color_texture_program(LoadTagEarly, []() -> L
 	lit_color_texture_program_pipeline.NORMAL_TO_LIGHT_mat3 = ret->NORMAL_TO_LIGHT_mat3;
 
 	lit_color_texture_program_pipeline.CLIP_PLANE_vec4 = ret->CLIP_PLANE_vec4;
+	lit_color_texture_program_pipeline.SELF_CLIP_PLANE_vec4 = ret->SELF_CLIP_PLANE_vec4;
 
 	/* This will be used later if/when we build a light loop into the Scene:
 	lit_color_texture_program_pipeline.LIGHT_TYPE_int = ret->LIGHT_TYPE_int;
@@ -54,6 +55,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"uniform mat4x3 OBJECT_TO_LIGHT;\n"
 		"uniform mat3 NORMAL_TO_LIGHT;\n"
 		"uniform vec4 CLIP_PLANE;\n"
+		"uniform vec4 SELF_CLIP_PLANE;\n"
 		"in vec4 Position;\n"
 		"in vec3 Normal;\n"
 		"in vec4 Color;\n"
@@ -62,13 +64,16 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"out vec3 normal;\n"
 		"out vec4 color;\n"
 		"out vec2 texCoord;\n"
+		"out mat4 PROJECTION_MATRIX;\n"
 		"void main() {\n"
 		"	gl_Position = OBJECT_TO_CLIP * Position;\n"
 		"	position = OBJECT_TO_LIGHT * Position;\n"
 		"   gl_ClipDistance[0] = dot(vec4(position,1), CLIP_PLANE);\n"
+		"   gl_ClipDistance[1] = dot(vec4(position,1), SELF_CLIP_PLANE);"
 		"	normal = NORMAL_TO_LIGHT * Normal;\n"
 		"	color = Color;\n"
 		"	texCoord = TexCoord;\n"
+		"	PROJECTION_MATRIX = OBJECT_TO_CLIP;\n"
 		"}\n"
 	,
 		//fragment shader:
@@ -83,7 +88,18 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"in vec3 normal;\n"
 		"in vec4 color;\n"
 		"in vec2 texCoord;\n"
+		"in mat4 PROJECTION_MATRIX;\n"
 		"out vec4 fragColor;\n"
+		"out vec3 outNormal;\n"
+		"out float outDepth;\n"
+		"out vec4 vertexColor;\n"
+		"float near = 0.1;\n"
+		"float far  = 15.0;\n"
+		"float LinearizeDepth(float depth)\n"
+		"{\n"
+		"	float z = depth * 2.0 - 1.0; // back to NDC\n"
+		"	return (2.0 * near * far) / (far + near - z * (far - near));\n"
+		"}\n"
 		"void main() {\n"
 		"	vec3 n = normalize(normal);\n"
 		"	vec3 e;\n"
@@ -104,10 +120,24 @@ LitColorTextureProgram::LitColorTextureProgram() {
 		"		nl *= smoothstep(LIGHT_CUTOFF,mix(LIGHT_CUTOFF,1.0,0.1), c);\n"
 		"		e = nl * LIGHT_ENERGY;\n"
 		"	} else { //(LIGHT_TYPE == 3) //directional light \n"
-		"		e = max(0.0, dot(n,-LIGHT_DIRECTION)) * LIGHT_ENERGY;\n"
+		"		e = vec3(0); //max(0.0, dot(n,-LIGHT_DIRECTION)) * LIGHT_ENERGY;\n"
 		"	}\n"
+		"	vec3 l = (LIGHT_LOCATION - position);\n"
+		"	float dis2 = dot(l,l);\n"
+		"	l = normalize(l);\n"
+		"	float nl = max(0.0, dot(n, l)) / max(1.0, dis2);\n"
+		"	e += nl * vec3(2);\n"
+		"	vec3 l_ = (vec3(-0.6, 1.7, 1.5) - position);\n"
+		"	float dis2_ = dot(l_,l_);\n"
+		"	l_ = normalize(l_);\n"
+		"	float nl_ = max(0.0, dot(n, l_)) / max(1.0, dis2_);\n"
+		"	e += nl_ * vec3(0.6);\n"
 		"	vec4 albedo = texture(TEX, texCoord) * color;\n"
 		"	fragColor = vec4(e*albedo.rgb, albedo.a);\n"
+		"	//fragColor = color;\n"
+		"	outNormal = n;\n"
+		"	outDepth = LinearizeDepth(gl_FragCoord.z);\n"
+		"	vertexColor = color;\n"
 		"}\n"
 	);
 	//As you can see above, adjacent strings in C/C++ are concatenated.
@@ -125,6 +155,7 @@ LitColorTextureProgram::LitColorTextureProgram() {
 	NORMAL_TO_LIGHT_mat3 = glGetUniformLocation(program, "NORMAL_TO_LIGHT");
 
 	CLIP_PLANE_vec4 = glGetUniformLocation(program, "CLIP_PLANE");
+	SELF_CLIP_PLANE_vec4 = glGetUniformLocation(program, "SELF_CLIP_PLANE");
 
 	LIGHT_TYPE_int = glGetUniformLocation(program, "LIGHT_TYPE");
 	LIGHT_LOCATION_vec3 = glGetUniformLocation(program, "LIGHT_LOCATION");
@@ -147,4 +178,3 @@ LitColorTextureProgram::~LitColorTextureProgram() {
 	glDeleteProgram(program);
 	program = 0;
 }
-

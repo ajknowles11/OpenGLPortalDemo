@@ -97,6 +97,9 @@ strings = b''
 #index gives offsets into the data (and names) for each mesh:
 index = b''
 
+#program represents shader program / post processing for each mesh:
+program = b''
+
 vertex_count = 0
 for obj in bpy.data.objects:
 	if obj.data in to_write:
@@ -107,6 +110,12 @@ for obj in bpy.data.objects:
 	obj.hide_select = False
 	mesh = obj.data
 	name = mesh.name
+	
+	prgm_num = 0
+	if obj.portal_data.shader_program == 'LITCOLORTEX':
+		prgm_num = 1
+	
+	program += struct.pack('I', prgm_num)
 
 	print("Writing '" + name + "'...")
 
@@ -210,7 +219,11 @@ blob.write(strings)
 blob.write(struct.pack('4s',b'idx0')) #type
 blob.write(struct.pack('I', len(index))) #length
 blob.write(index)
+#fourth chunk: shader program
+blob.write(struct.pack('4s',b'prg0')) #type
+blob.write(struct.pack('I', len(program))) #length
+blob.write(program)
 wrote = blob.tell()
 blob.close()
 
-print("Wrote " + str(wrote) + " bytes [== " + str(len(data)+8) + " bytes of data + " + str(len(strings)+8) + " bytes of strings + " + str(len(index)+8) + " bytes of index] to '" + outfile + "'")
+print("Wrote " + str(wrote) + " bytes [== " + str(len(data)+8) + " bytes of data + " + str(len(strings)+8) + " bytes of strings + " + str(len(index)+8) + " bytes of index + " + str(len(program)+8) + " bytes of program] to '" + outfile + "'")
