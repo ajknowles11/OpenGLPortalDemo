@@ -110,7 +110,7 @@ struct PlayMode : Mode {
 
     bool controls_hint_show = false;
 	uint8_t milk_hint_count = 0;
-    bool touched_fridge = false;
+    bool intro_done = false;
     Scene::Transform *rotate_base = nullptr;
 
 

@@ -206,8 +206,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	for (auto &b : scene.buttons) {
 		if (b.name == "FridgeDoor") {
 			b.on_pressed = [&](){
+				if (!intro_done) return; //don't let people continue unless we showed them all hint text
 				b.active = false;
-				touched_fridge = true;
 				milk_hint_count = 0;
 				controls_hint_show = false;
 				player.animation_lock_move = true;
@@ -472,7 +472,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			if (!started_playing) {
 				started_playing = true;
 				timers.emplace_back(5.5f, [&](float alpha){
-					if (touched_fridge) return;
 					if (alpha >= 3.5f / 5.5f) {
 						milk_hint_count = 2;
 					}
@@ -480,8 +479,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 						milk_hint_count = 1;
 					}
 				}, [&](){
-					if (touched_fridge) return;
 					controls_hint_show = true;
+					intro_done = true;
 				});
 			}
 			// unpause if paused
