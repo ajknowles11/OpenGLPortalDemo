@@ -109,6 +109,7 @@ struct PlayMode : Mode {
     //----- Sound refs -------------------
 
     std::shared_ptr<Sound::PlayingSample> ambient_sample = nullptr;
+    std::shared_ptr<Sound::PlayingSample> home_sample = nullptr;
 
 	//----- Random scripting objects -----
 

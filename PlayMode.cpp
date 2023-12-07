@@ -168,6 +168,15 @@ Load< Sound::Sample > ambient(LoadTagDefault, []() -> Sound::Sample const * {
 	return new Sound::Sample(data_path("bgm/AmbientBGM.opus"));
 });
 
+Load< Sound::Sample > fallsfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/fall.opus"));
+});
+
+Load< Sound::Sample > homebgm(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("bgm/home.opus"));
+});
+
+
 // ---------------------------
 
 PlayMode::PlayMode() : scene(*level_scene) {
@@ -229,6 +238,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 			b.on_pressed = [&](){
 				if (!intro_done) return; //don't let people continue unless we showed them all hint text
 				b.active = false;
+				home_sample->stop(0.5f);
 				Sound::play_3D(*fridge_open, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
 				//play fall sound here
 				milk_hint_count = 0;
@@ -236,6 +246,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
+				Sound::play(*fallsfx, 1.5f);
 				timers.emplace_back(1.2f, [&](float alpha){
 						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
 						player.transform->position = glm::mix(player.transform->position, target, alpha);
@@ -546,6 +557,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			// start playing if first time
 			if (!started_playing) {
 				started_playing = true;
+				home_sample = Sound::loop(*homebgm, 0.2f);
 				timers.emplace_back(5.5f, [&](float alpha){
 					if (alpha >= 3.5f / 5.5f) {
 						milk_hint_count = 2;
