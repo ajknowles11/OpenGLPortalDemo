@@ -981,6 +981,8 @@ void PlayMode::handle_portals() {
 
 				scene.portals["FunZone"]->active = true;
 
+				ambient_sample->volume = 0.15f;
+
 				scene.default_draw_recursion_max = 1;
 			}
 			else if (p == scene.portals["FunZone"]) {
@@ -997,6 +999,8 @@ void PlayMode::handle_portals() {
 				scene.portals["Drop1"]->active = true;
 
 				scene.portals["FunZone"]->active = false;
+
+				ambient_sample->volume = 0.4f;
 
 				scene.default_draw_recursion_max = 0;
 			}
