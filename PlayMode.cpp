@@ -176,6 +176,10 @@ Load< Sound::Sample > homebgm(LoadTagDefault, []() -> Sound::Sample const * {
 	return new Sound::Sample(data_path("bgm/home.opus"));
 });
 
+Load< Sound::Sample > boomsfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/boom.opus"));
+});
+
 
 // ---------------------------
 
@@ -240,7 +244,6 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				b.active = false;
 				home_sample->stop(0.5f);
 				Sound::play_3D(*fridge_open, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-				//play fall sound here
 				milk_hint_count = 0;
 				controls_hint_show = false;
 				player.animation_lock_move = true;
@@ -560,10 +563,16 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 				home_sample = Sound::loop(*homebgm, 0.2f);
 				timers.emplace_back(5.5f, [&](float alpha){
 					if (alpha >= 3.5f / 5.5f) {
-						milk_hint_count = 2;
+						if (milk_hint_count < 2) {
+							milk_hint_count = 2;
+							Sound::play(*boomsfx, 0.5f);
+						}
 					}
 					else if (alpha >= 1.5f / 5.5f) {
-						milk_hint_count = 1;
+						if (milk_hint_count < 1) {
+							milk_hint_count = 1;
+							Sound::play(*boomsfx, 0.5f);
+						}
 					}
 				}, [&](){
 					controls_hint_show = true;
