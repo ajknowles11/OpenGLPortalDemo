@@ -158,6 +158,19 @@ Load< Scene::Texture > shadow_texture(LoadTagDefault, []() -> Scene::Texture con
 	return new Scene::Texture(data_path("textures/shadow.png"));
 });
 
+Load< Scene::Texture > title_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/title.png"));
+});
+
+Load< Scene::Texture > credits_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/credits.png"));
+});
+
+Load< Scene::Texture > thanks_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/thanks.png"));
+});
+
+
 
 // audio ---------------------
 
@@ -652,6 +665,29 @@ PlayMode::PlayMode() : scene(*level_scene) {
 			};
 
 		}
+		else if (b.name == "m_MilkBox") {
+			b.on_pressed = [&](){
+				b.active = false;
+				b.drawable->transform->scale = glm::vec3(0);
+				scene.portals["MilkRoom"]->active = false;
+				timers.emplace_back(13.0f, [&](float alpha){
+					if (alpha >= 0.769f) {
+						outro_count = 4;
+					}
+					else if (alpha >= 0.538f) {
+						outro_count = 3;
+					}
+					else if (alpha >= 0.308f) {
+						outro_count = 2;
+					}
+					else if (alpha >= 0.077f) {
+						outro_count = 1;
+					}
+				}, [&](){
+					outro_count = 5;
+				});
+			};
+		}
 	}
 
 
@@ -675,6 +711,13 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	controls_hint = Scene::ScreenImage(*controls_texture, glm::vec2(0.9f, 0.9f), glm::vec2(cont_hint_width, 0.2f), Scene::ScreenImage::TopRight, color_texture_program);
 
 	pause_text = Scene::ScreenImage(*pause_texture, glm::vec2(0), glm::vec2(0.4f), Scene::ScreenImage::Center, color_texture_program);
+
+	constexpr float title_hint_width = 0.4f * 4.0f;
+
+	title_text = Scene::ScreenImage(*title_texture, glm::vec2(0), glm::vec2(title_hint_width, 0.4f), Scene::ScreenImage::Center, color_texture_program);
+	credits_text = Scene::ScreenImage(*credits_texture, glm::vec2(0), glm::vec2(title_hint_width, 0.4f), Scene::ScreenImage::Center, color_texture_program);
+	thanks_text = Scene::ScreenImage(*thanks_texture, glm::vec2(0), glm::vec2(title_hint_width, 0.4f), Scene::ScreenImage::Center, color_texture_program);
+
 
 }
 
@@ -1393,6 +1436,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	if (controls_hint_show) {
 		controls_hint.draw(aspect);
+	}
+
+	if (outro_count == 5) {
+		thanks_text.draw(aspect);
+	}
+	else if (outro_count == 3) {
+		credits_text.draw(aspect);
+	}
+	else if (outro_count == 1) {
+		title_text.draw(aspect);
 	}
 
 	if (paused) {
