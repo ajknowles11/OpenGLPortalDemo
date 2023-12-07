@@ -273,12 +273,13 @@ struct Scene {
 		GLuint tex = 0;
 		GLuint buffer = 0;
 		GLuint vao = 0;
-		ColorTextureProgram const *program = nullptr;
 
 		glm::vec2 origin;
 		glm::vec2 size;
 
 		OriginMode origin_mode;
+
+		ColorTextureProgram const *program = nullptr;
 
 		void draw(float aspect);
 	};
