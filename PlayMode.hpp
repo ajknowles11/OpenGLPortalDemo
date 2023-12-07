@@ -61,6 +61,8 @@ struct PlayMode : Mode {
 
     Scene::ScreenImage cursor;
     Scene::ScreenImage mouse_prompt;
+    Scene::ScreenImage milk_hint0;
+    Scene::ScreenImage milk_hint;
 
 	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
@@ -103,7 +105,10 @@ struct PlayMode : Mode {
 
 	//----- Random scripting objects -----
 
-	bool milk_hint = true;
+    bool started_playing = false;
+
+    bool move_hint = false;
+	uint8_t milk_hint_count = 0;
     Scene::Transform *rotate_base = nullptr;
 
 

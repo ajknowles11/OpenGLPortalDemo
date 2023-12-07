@@ -519,6 +519,12 @@ void Scene::ScreenImage::draw(float aspect) {
 		attribs.emplace_back(glm::vec3(origin.x + (size.x * 0.5f), origin.y - aspect * (size.y * 0.5f), 0.0f), glm::vec2(1.0f, 0.0f));
 		attribs.emplace_back(glm::vec3(origin.x + (size.x * 0.5f), origin.y + aspect * (size.y * 0.5f), 0.0f), glm::vec2(1.0f, 1.0f));
 	}
+	else if (origin_mode == Bottom) {
+		attribs.emplace_back(glm::vec3(origin.x - (size.x * 0.5f), origin.y, 0.0f), glm::vec2(0.0f, 0.0f));
+		attribs.emplace_back(glm::vec3(origin.x - (size.x * 0.5f), origin.y + aspect * size.y, 0.0f), glm::vec2(0.0f, 1.0f));
+		attribs.emplace_back(glm::vec3(origin.x + (size.x * 0.5f), origin.y, 0.0f), glm::vec2(1.0f, 0.0f));
+		attribs.emplace_back(glm::vec3(origin.x + (size.x * 0.5f), origin.y + aspect * size.y, 0.0f), glm::vec2(1.0f, 1.0f));
+	}
 	
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vert) * attribs.size(), attribs.data(), GL_STREAM_DRAW);

@@ -135,15 +135,24 @@ Load< Scene::Texture > mouse_texture(LoadTagDefault, []() -> Scene::Texture cons
 	return new Scene::Texture(data_path("textures/mouse.png"));
 });
 
+Load< Scene::Texture > hint0_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/hint0.png"));
+});
+
+Load< Scene::Texture > hint_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/hint.png"));
+});
+
+// ---------------------------
+
 PlayMode::PlayMode() : scene(*level_scene) {
 	scene.full_tri_program = *full_tri_program;
 
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
-	//player.transform->position = glm::vec3(3.8, -10.0f, -1.8f);
-	player.transform->position = glm::vec3(3.8, -10.0f, 0.0f);
-	player.transform->rotation = glm::angleAxis(glm::radians(-50.0f), glm::vec3(0,0,1));
+	player.transform->position = glm::vec3(-2.0f, 0.0f, 0.0f);
+	player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(-70.0f)));
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -157,7 +166,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
 
 	//rotate camera facing direction (-z) to player facing direction (+y):
-	player.camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	player.camera->transform->rotation = glm::quat(glm::vec3(glm::radians(70.0f), 0.0f, 0.0f));
 
 	//gather walkmeshes
 	{
@@ -194,7 +203,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		if (b.name == "FridgeDoor") {
 			b.on_pressed = [&](){
 				b.active = false;
-				milk_hint = false;
+				milk_hint_count = 0;
 				player.animation_lock_move = true;
 				player.animation_lock_look = true;
 				player.uses_walkmesh = false;
@@ -357,8 +366,12 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 	//ScreenImage UI elements
 	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.015f), Scene::ScreenImage::Center, color_texture_program);
-
 	mouse_prompt = Scene::ScreenImage(*mouse_texture, glm::vec2(0), glm::vec2(0.04f), Scene::ScreenImage::Center, color_texture_program);
+
+	constexpr float milk_hint_width = 0.3f * 128.0f / 45.0f;
+
+	milk_hint0 = Scene::ScreenImage(*hint0_texture, glm::vec2(0.0f, -0.9f), glm::vec2(milk_hint_width, 0.3f), Scene::ScreenImage::Bottom, color_texture_program);
+	milk_hint = Scene::ScreenImage(*hint_texture, glm::vec2(0.0f, -0.9f), glm::vec2(milk_hint_width, 0.3f), Scene::ScreenImage::Bottom, color_texture_program);
 
 }
 
@@ -445,6 +458,22 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
+			// start playing if first time
+			if (!started_playing) {
+				started_playing = true;
+				timers.emplace_back(5.5f, [&](float alpha){
+					if (alpha >= 3.5f / 5.5f) {
+						milk_hint_count = 2;
+					}
+					else if (alpha >= 1.5f / 5.5f) {
+						milk_hint_count = 1;
+					}
+				}, [&](){
+					move_hint = true;
+				});
+			}
+			// unpause if paused
+
 			return true;
 		} else {
 			if (evt.button.button == SDL_BUTTON_LEFT) {
@@ -972,6 +1001,13 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		cursor.draw(aspect);
 	}
 
+	if (milk_hint_count == 1) {
+		milk_hint0.draw(aspect);
+	}
+	else if (milk_hint_count == 2) {
+		milk_hint.draw(aspect);
+	}
+
 	{ //use DrawLines to overlay some text:
 		glDisable(GL_DEPTH_TEST);
 		DrawLines lines(glm::mat4(
@@ -982,26 +1018,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse, WASD, Shift to run, Click to interact.",
-			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse, WASD, Shift to run, Click to interact.",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + 0.1f * H + ofs, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
-		
-		if (milk_hint) {
-			lines.draw_text("Objective: Acquire milk",
-				glm::vec3(-aspect + 0.1f * H, 0.89f - H, 0.0),
-				glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-				glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-			lines.draw_text("Objective: Acquire milk",
-				glm::vec3(-aspect + 0.1f * H + ofs, 0.89f - H + ofs, 0.0),
-				glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-				glm::u8vec4(0xff, 0xff, 0xff, 0x00));
-		}
 
 		if (draw_debug) {
 			std::string const &fps = std::to_string(int(glm::round(1.0f / frame_delta)));
