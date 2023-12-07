@@ -131,6 +131,10 @@ Load< Scene::Texture > cursor_texture(LoadTagDefault, []() -> Scene::Texture con
 	return new Scene::Texture(data_path("textures/cursor.png"));
 });
 
+Load< Scene::Texture > mouse_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/mouse.png"));
+});
+
 PlayMode::PlayMode() : scene(*level_scene) {
 	scene.full_tri_program = *full_tri_program;
 
@@ -352,9 +356,9 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	InitQuadBuffers();
 
 	//ScreenImage UI elements
-	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.02f), Scene::ScreenImage::Center, color_texture_program);
+	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.015f), Scene::ScreenImage::Center, color_texture_program);
 
-	mouse_prompt = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.2f), Scene::ScreenImage::Center, color_texture_program);
+	mouse_prompt = Scene::ScreenImage(*mouse_texture, glm::vec2(0), glm::vec2(0.04f), Scene::ScreenImage::Center, color_texture_program);
 
 }
 
