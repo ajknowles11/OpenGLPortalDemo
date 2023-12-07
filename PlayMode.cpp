@@ -220,6 +220,10 @@ Load< Sound::Sample > portal_offsfx(LoadTagDefault, []() -> Sound::Sample const 
 	return new Sound::Sample(data_path("sfx/portal-off.opus"));
 });
 
+Load< Sound::Sample > rotatesfx(LoadTagDefault, []() -> Sound::Sample const * {
+	return new Sound::Sample(data_path("sfx/rotate.opus"));
+});
+
 
 // ---------------------------
 
@@ -255,19 +259,22 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		}
 	}
 
-	walkmesh = walkmesh_map["ApartmentWalkMesh"];
+	//walkmesh = walkmesh_map["ApartmentWalkMesh"];
+	walkmesh = walkmesh_map["DeacHard"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
 		player.at = walkmesh->nearest_walk_point(player.transform->position);
 	}
 
-	scene.current_group = &scene.portal_groups["Start"];
+	//scene.current_group = &scene.portal_groups["Start"];
+	scene.current_group = &scene.portal_groups["DeacHard"];
 
 	scene.portals["HallExit"]->active = false;
 	scene.portals["FlipExit"]->active = false;
 	scene.portals["DeacHard1"]->active = false;
 	scene.portals["DeacHard3"]->active = false;
+	scene.portals["RotateExit"]->active = false;
 
 	for (auto &t : scene.transforms) {
 		if (t.name == "RotateBase") {
@@ -487,10 +494,12 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				timers.emplace_back(0.1f, [&, zpos](float alpha){ // press anim
 					b.drawable->transform->position.z = glm::mix(zpos, zpos - 0.2f, alpha);
 				}, [&, zpos](){ // start other anims when press done
+					Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					Sound::play_3D(*rotatesfx, 0.4f, rotate_base->make_local_to_world()[3], 10.0f);
 					timers.emplace_back(0.15f, [&](float alpha){ // depress anim
 						b.drawable->transform->position.z = glm::mix(zpos - 0.2f, zpos, alpha);
 					});
-					timers.emplace_back(1.5f, [&](float alpha){ // rotate anim
+					timers.emplace_back(1.2f, [&](float alpha){ // rotate anim
 						if (b.hit) {
 							rotate_base->rotation = glm::angleAxis(glm::mix(glm::radians(0.0f), glm::radians(180.0f), alpha), glm::vec3(0,0,1));
 						}
@@ -500,6 +509,27 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					}, [&](){ // finish
 						b.active = true;
 					});
+				});
+			};
+		}
+		else if (b.name == "LeverRotate") {
+			b.on_pressed = [&](){
+				b.hit = !b.hit;
+				b.active = false;
+				scene.portals["RotateExit"]->active = b.hit;
+				timers.emplace_back(0.12f, [&](float alpha){
+					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
+					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
+				}, [&](){
+					if (b.hit) {
+						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["RotateExit"]->drawable->transform->make_local_to_world()[3]);
+						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					else {
+						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["RotateExit"]->drawable->transform->make_local_to_world()[3]);
+						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
+					}
+					b.active = true;
 				});
 			};
 		}
