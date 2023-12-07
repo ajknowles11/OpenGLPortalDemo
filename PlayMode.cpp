@@ -147,6 +147,10 @@ Load< Scene::Texture > controls_texture(LoadTagDefault, []() -> Scene::Texture c
 	return new Scene::Texture(data_path("textures/controls.png"));
 });
 
+Load< Scene::Texture > pause_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/pause.png"));
+});
+
 // ---------------------------
 
 PlayMode::PlayMode() : scene(*level_scene) {
@@ -216,7 +220,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 				timers.emplace_back(1.0f, [&](float alpha){
 						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
 						player.transform->position = glm::mix(player.transform->position, target, alpha);
-						player.transform->rotation = glm::lerp(player.transform->rotation, glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1)), alpha);
+						player.transform->rotation = glm::lerp(player.transform->rotation, glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1)), alpha);// fix this
 						player.camera->transform->rotation = glm::quat(glm::vec3(glm::mix(glm::pitch(player.camera->transform->rotation), 1.1f * glm::radians(90.0f), alpha), 0, 0));
 						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), alpha);
 					}, [&](){
@@ -371,7 +375,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	InitQuadBuffers();
 
 	//ScreenImage UI elements
-	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.015f), Scene::ScreenImage::Center, color_texture_program);
+	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.0125f), Scene::ScreenImage::Center, color_texture_program);
 	mouse_prompt = Scene::ScreenImage(*mouse_texture, glm::vec2(0), glm::vec2(0.04f), Scene::ScreenImage::Center, color_texture_program);
 
 	constexpr float milk_hint_width = 0.3f * 128.0f / 45.0f;
@@ -382,6 +386,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	constexpr float cont_hint_width = 0.2f * 16.0f / 9.0f;
 
 	controls_hint = Scene::ScreenImage(*controls_texture, glm::vec2(0.9f, 0.9f), glm::vec2(cont_hint_width, 0.2f), Scene::ScreenImage::TopRight, color_texture_program);
+
+	pause_text = Scene::ScreenImage(*pause_texture, glm::vec2(0), glm::vec2(0.4f), Scene::ScreenImage::Center, color_texture_program);
 
 }
 
@@ -397,8 +403,19 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 	if (evt.type == SDL_KEYDOWN) {
 		if (evt.key.keysym.sym == SDLK_ESCAPE) {
-			SDL_SetRelativeMouseMode(SDL_FALSE);
+			if (!paused) {
+				GLfloat viewportarr[4];
+				glGetFloatv(GL_VIEWPORT, viewportarr);
+				SDL_WarpMouseInWindow(SDL_GL_GetCurrentWindow(), (int)viewportarr[2] / 2, (int)viewportarr[3] / 2);
+				SDL_SetRelativeMouseMode(SDL_FALSE);
+			}
+			else {
+				SDL_SetRelativeMouseMode(SDL_TRUE);
+			}
+			paused = !paused;
 			return true;
+		} if (paused) {
+			return false;
 		} else if (evt.key.keysym.sym == SDLK_a) {
 			left.downs += 1;
 			left.pressed = true;
@@ -437,6 +454,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
+		if (paused) return false;
 		if (evt.key.keysym.sym == SDLK_a) {
 			left.pressed = false;
 			return true;
@@ -484,15 +502,22 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 				});
 			}
 			// unpause if paused
-
+			if (paused) {
+				paused = false;
+			}
 			return true;
-		} else {
+		} else if (paused) {
+			return false;
+		}
+		else {
 			if (evt.button.button == SDL_BUTTON_LEFT) {
 				click.downs += 1;
 				click.pressed = true;
 				return true;
 			}
 		}
+	} else if (paused) {
+		return false;
 	} else if (evt.type == SDL_MOUSEBUTTONUP) {
 		if (evt.button.button == SDL_BUTTON_LEFT) {
 			click.pressed = false;
@@ -522,6 +547,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	if (paused) return;
 	//used for intro
 	if (player.fall_to_walkmesh) {
 		player.velocity.x = 0;
@@ -1021,6 +1047,10 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	if (controls_hint_show) {
 		controls_hint.draw(aspect);
+	}
+
+	if (paused) {
+		pause_text.draw(aspect);
 	}
 
 	{ //use DrawLines to overlay some text:

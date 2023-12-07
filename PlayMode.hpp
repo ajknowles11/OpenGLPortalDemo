@@ -64,6 +64,7 @@ struct PlayMode : Mode {
     Scene::ScreenImage milk_hint0;
     Scene::ScreenImage milk_hint;
     Scene::ScreenImage controls_hint;
+    Scene::ScreenImage pause_text;
 
 	std::unordered_map<std::string, WalkMesh const *> walkmesh_map;
 
@@ -105,6 +106,8 @@ struct PlayMode : Mode {
 	std::vector<Timer> timers = std::vector<Timer>();
 
 	//----- Random scripting objects -----
+
+    bool paused = false;
 
     bool started_playing = false;
 
