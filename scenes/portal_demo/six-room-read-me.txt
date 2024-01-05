@@ -1,7 +1,0 @@
-Level-1:
-portal-l1-1 - potal-l1-4  ------>  portal-l2-1
-Portal-l1-5               ------>  Portal-l1-6
-
-Level-2:
-portal-l2-2               ------>  portal-l2-1
-portal-l2-1               ------>  Portal-l3-1

@@ -17,32 +17,22 @@
 
 GLuint meshes_for_lit_color_texture_program = 0;
 GLuint meshes_for_color_texture_program = 0;
-GLuint meshes_for_solid_outline_program = 0;
 Load< MeshBuffer > level_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("level/level.pnct"));
+	MeshBuffer const *ret = new MeshBuffer(data_path("level/demo.pnct"));
 	meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	meshes_for_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
-	meshes_for_solid_outline_program = ret->make_vao_for_program(solid_outline_program->program);
 	return ret;
 });
 
 Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("level/level.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+	return new Scene(data_path("level/demo.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
 		Mesh const &mesh = level_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
-		if (mesh.program == 0) {
-			drawable.pipeline = solid_outline_program_pipeline;
-			drawable.pipeline.vao = meshes_for_solid_outline_program;
-		}
-		else if (mesh.program == 1) {
-			drawable.pipeline = lit_color_texture_program_pipeline;
-			drawable.pipeline.vao = meshes_for_lit_color_texture_program;
-		}
-
-
+		drawable.pipeline = lit_color_texture_program_pipeline;
+		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -53,7 +43,6 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		Scene::Drawable *drawable = new Scene::Drawable(transform);
 
 		drawable->pipeline = lit_color_texture_program_pipeline;
-
 		drawable->pipeline.vao = meshes_for_lit_color_texture_program;
 		drawable->pipeline.type = mesh.type;
 		drawable->pipeline.start = mesh.start;
@@ -98,14 +87,8 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
-		if (mesh.program == 0) {
-			drawable.pipeline = solid_outline_program_pipeline;
-			drawable.pipeline.vao = meshes_for_solid_outline_program;
-		}
-		else if (mesh.program == 1) {
-			drawable.pipeline = lit_color_texture_program_pipeline;
-			drawable.pipeline.vao = meshes_for_lit_color_texture_program;
-		}
+		drawable.pipeline = lit_color_texture_program_pipeline;
+		drawable.pipeline.vao = meshes_for_lit_color_texture_program;
 		
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
@@ -116,7 +99,7 @@ Load< Scene > level_scene(LoadTagDefault, []() -> Scene const * {
 });
 
 Load< WalkMeshes > walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
-	WalkMeshes *ret = new WalkMeshes(data_path("level/walkmeshes.w"));
+	WalkMeshes *ret = new WalkMeshes(data_path("level/demo.w"));
 	return ret;
 });
 
@@ -134,116 +117,12 @@ Load< Scene::Texture > mouse_texture(LoadTagDefault, []() -> Scene::Texture cons
 	return new Scene::Texture(data_path("textures/mouse.png"));
 });
 
-Load< Scene::Texture > hint0_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/hint0.png"));
-});
-
-Load< Scene::Texture > hint_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/hint.png"));
-});
-
 Load< Scene::Texture > controls_texture(LoadTagDefault, []() -> Scene::Texture const * {
 	return new Scene::Texture(data_path("textures/controls.png"));
 });
 
 Load< Scene::Texture > pause_texture(LoadTagDefault, []() -> Scene::Texture const * {
 	return new Scene::Texture(data_path("textures/pause.png"));
-});
-
-Load< Scene::Texture > milk_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/milk.png"));
-});
-
-Load< Scene::Texture > shadow_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/shadow.png"));
-});
-
-Load< Scene::Texture > title_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/title.png"));
-});
-
-Load< Scene::Texture > credits_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/credits.png"));
-});
-
-Load< Scene::Texture > thanks_texture(LoadTagDefault, []() -> Scene::Texture const * {
-	return new Scene::Texture(data_path("textures/thanks.png"));
-});
-
-
-
-// audio ---------------------
-
-Load< Sound::Sample > lever_on(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/lever-open.opus"));
-});
-
-Load< Sound::Sample > lever_off(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/lever-close.opus"));
-});
-
-Load< Sound::Sample > fridge_open(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/fridge-open.opus"));
-});
-
-Load< Sound::Sample > ambient(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("bgm/AmbientBGM.opus"));
-});
-
-Load< Sound::Sample > fallsfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/fall.opus"));
-});
-
-Load< Sound::Sample > homebgm(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("bgm/home.opus"));
-});
-
-Load< Sound::Sample > boomsfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/boom.opus"));
-});
-
-Load< Sound::Sample > run1sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/run-L-1.opus"));
-});
-
-Load< Sound::Sample > run2sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/run-L-2.opus"));
-});
-
-Load< Sound::Sample > run3sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/run-L-3.opus"));
-});
-
-Load< Sound::Sample > run4sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/run-R-1.opus"));
-});
-
-Load< Sound::Sample > walk1sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/walk-L-1.opus"));
-});
-
-Load< Sound::Sample > walk2sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/walk-L-2.opus"));
-});
-
-Load< Sound::Sample > walk3sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/walk-L-3.opus"));
-});
-
-Load< Sound::Sample > walk4sfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/footstep/walk-R-1.opus"));
-});
-
-Load< Sound::Sample > portal_onsfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/portal-on.opus"));
-});
-
-Load< Sound::Sample > portal_offsfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/portal-off.opus"));
-});
-
-Load< Sound::Sample > rotatesfx(LoadTagDefault, []() -> Sound::Sample const * {
-	return new Sound::Sample(data_path("sfx/rotate.opus"));
 });
 
 
@@ -281,7 +160,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 		}
 	}
 
-	walkmesh = walkmesh_map["ApartmentWalkMesh"];
+	walkmesh = walkmesh_map["wm0"];
 
 	//start player walking at nearest walk point:
 	if (walkmesh != nullptr) {
@@ -290,441 +169,40 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 	scene.current_group = &scene.portal_groups["Start"];
 
-	scene.portals["HallExit"]->active = false;
-	scene.portals["FlipExit"]->active = false;
-	scene.portals["DeacHard1"]->active = false;
-	scene.portals["DeacHard3"]->active = false;
-	scene.portals["RotateExit"]->active = false;
-	scene.portals["HardExit"]->active = false;
-
-
-	scene.portals["HardBlue1"]->on_walkmesh = "Hard0"; //needed to set it to 3 for walkmesh import to work properly
-
 	for (auto &t : scene.transforms) {
 		if (t.name == "RotateBase") {
 			rotate_base = &t;
 		}
-		else if (t.name == "HardRotBase") {
-			hard_rot_base = &t;
-		}
 	}
 	
-
-	//Screen Shader and quad Initialization
-	Shader whiteworldShader(data_path("shaders/whiteworld.vs"), data_path("shaders/whiteworld.fs"));
-	whiteworldShader.use();
-	whiteworldShader.setInt("screenTexture", 0);
-	whiteworldShader.setInt("normalTexture", 1);
-	whiteworldShader.setInt("depthTexture", 2);
-	whiteworldShaderID = whiteworldShader.ID;
-	currentShaderID = whiteworldShaderID;
-	DisableFog(whiteworldShaderID);
-	SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f), 14.5f, 2.0f);
-
-	Shader normalShader(data_path("shaders/normal.vs"), data_path("shaders/normal.fs"));
-	normalShader.use();
-	normalShader.setInt("screenTexture", 0);
-	normalShaderID = normalShader.ID;
-	InitQuadBuffers();
-
-
-	// Textures
-	{	//milk
-		glGenTextures(1, &milk_tex);
-
-		glBindTexture(GL_TEXTURE_2D, milk_tex);
-		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, milk_texture->size.x, milk_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, milk_texture->pixels.data());
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	{	//shadow
-		glGenTextures(1, &shadow_tex);
-
-		glBindTexture(GL_TEXTURE_2D, shadow_tex);
-		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, shadow_texture->size.x, shadow_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, shadow_texture->pixels.data());
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	for (auto &d : scene.drawables) {
-		if (d.transform->name.substr(0, 2) == "m_") {
-			d.pipeline.textures->texture = milk_tex;
-		}
-		else if (d.transform->name == "ShadowCircle") {
-			d.pipeline.textures->texture = shadow_tex;
-		}
-		else if(d.transform->name == "player"){
-			player_start = d.transform->position;
-			std::cout << "player start: " << player_start.x << ", " << player_start.y << ", " << player_start.z << std::endl;
-		}else if(d.transform->name == "Cube.044"){
-			player_end = d.transform->position;
-			std::cout << "player end: " << player_end.x << ", " << player_end.y << ", " << player_end.z << std::endl;
-		}
-	}
-	
-
 	//Button scripting
 	for (auto &b : scene.buttons) {
-		if (b.name == "FridgeDoor") {
-			b.on_pressed = [&](){
-				if (!intro_done) return; //don't let people continue unless we showed them all hint text
-				b.active = false;
-				home_sample->stop(0.5f);
-				Sound::play_3D(*fridge_open, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-				milk_hint_count = 0;
-				controls_hint_show = false;
-				player.animation_lock_move = true;
-				player.animation_lock_look = true;
-				player.uses_walkmesh = false;
-				Sound::play(*fallsfx, 1.5f);
-				timers.emplace_back(1.2f, [&](float alpha){
-						glm::vec3 const &target = glm::vec3(-4.5f, 0.5f, -0.2f);
-						player.transform->position = glm::mix(player.transform->position, target, alpha);
-						float yaw = glm::roll(player.transform->rotation); //glm moment
-						if (yaw < 0) yaw += glm::radians(360.0f);
-						player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::mix(yaw, glm::radians(180.0f), alpha))); 
-						player.camera->transform->rotation = glm::quat(glm::vec3(glm::mix(glm::pitch(player.camera->transform->rotation), 1.1f * glm::radians(90.0f), alpha), 0, 0));
-						b.drawable->transform->rotation = glm::lerp(glm::quat(), glm::angleAxis(glm::radians(90.0f), glm::vec3(0,0,1)), (alpha * 2.0f > 1.0f ? 1.0f : alpha * 2.0f));
-					}, [&](){
-						timers.emplace_back(0.35f, [&](float alpha){
-							glm::vec3 const &start = glm::vec3(-4.5f, 0.5f, -0.2f);
-							glm::vec3 const &end = glm::vec3(-4.5f, -1.8f, -0.2f);
-							if (!player.fall_to_walkmesh) player.transform->position = glm::mix(start, end, alpha);
-						}, [&](){
-							player.animation_lock_look = false;
-							player.animation_lock_move = false;
-
-							// TELEPORT PLAYER (MANUALLY INSTEAD OF USING PORTAL LOGIC)
-
-							Scene::Portal *p = scene.portals["PortalFridge"];
-							scene.current_group = &scene.portal_groups[p->dest->group];
-
-							player.transform->position = p->dest->drawable->transform->position + glm::vec3(0, -1.6f, -1.8f);
-							player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
-							player.velocity.z = -0.4f * player.gravity;
-							player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
-							walkmesh = walkmesh_map[p->dest->on_walkmesh];
-							player.uses_walkmesh = false;
-							player.fall_to_walkmesh = true;
-							p->active = false;
-						});
-					
-				});
-			};
-		}
-		else if (b.name == "Lever") {
+		if (b.name == "Lever") {
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
 				b.active = false;
-				scene.portals["HallExit"]->active = b.hit; //we used to activate after lever anim finished, but could walk through deac'd portals quickly in some cases.
+
+				// start or stop portal spinning
+
 				//we could also init timer once (without auto start/delete) and just save a ref, but it's not a big deal
 				timers.emplace_back(0.12f, [&](float alpha){
 					float angle = b.hit ? glm::mix(0.0f, 90.0f, alpha) : glm::mix(90.0f, 0.0f, alpha);
 					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
 				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.6f, b.drawable->transform->make_local_to_world()[3] + glm::vec3(-7.0f, 0.0f, 0.0f), 10.0f); //play coming from stairs
-						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.6f, b.drawable->transform->make_local_to_world()[3] + glm::vec3(-7.0f, 0.0f, 0.0f), 10.0f);
-						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
 					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "LeverFlip") {
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["FlipExit"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["FlipExit"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["FlipExit"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "LeverDeac") {
-			b.hit = true;
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["Deac1"]->active = b.hit;
-				scene.portals["Deac2"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(90.0f, 0.0f, alpha) : glm::mix(0.0f, 90.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["Deac1"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["Deac1"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "LeverDeac2") {
-			b.hit = true;
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["Deac3"]->active = b.hit;
-				scene.portals["Deac4"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(90.0f, 0.0f, alpha) : glm::mix(0.0f, 90.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,0,1));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["Deac3"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["Deac3"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "LeverDeac3") {
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["DeacHard1"]->active = b.hit;
-				scene.portals["DeacHard3"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(0.0f, 90.0f, alpha) : glm::mix(90.0f, 0.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["DeacHard1"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["DeacHard1"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 0.8f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "LeverDeac4") {
-			b.hit = true;
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["DeacHard0"]->active = b.hit;
-				scene.portals["DeacHard2"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(-90.0f, 0.0f, alpha) : glm::mix(0.0f, -90.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["DeacHard0"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["DeacHard0"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "RotateB") {
-			b.range_mult = 0.75f;
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				float const &zpos = b.drawable->transform->position.z;
-				// timer for button press, which makes timers for depress and portal rotation
-				timers.emplace_back(0.1f, [&, zpos](float alpha){ // press anim
-					b.drawable->transform->position.z = glm::mix(zpos, zpos - 0.2f, alpha);
-				}, [&, zpos](){ // start other anims when press done
-					Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					Sound::play_3D(*rotatesfx, 0.4f, rotate_base->make_local_to_world()[3], 10.0f);
-					timers.emplace_back(0.15f, [&](float alpha){ // depress anim
-						b.drawable->transform->position.z = glm::mix(zpos - 0.2f, zpos, alpha);
-					});
-					timers.emplace_back(1.2f, [&](float alpha){ // rotate anim
-						if (b.hit) {
-							rotate_base->rotation = glm::angleAxis(glm::mix(glm::radians(0.0f), glm::radians(180.0f), alpha), glm::vec3(0,0,1));
-						}
-						else {
-							rotate_base->rotation = glm::angleAxis(glm::mix(glm::radians(180.0f), glm::radians(360.0f), alpha), glm::vec3(0,0,1));
-						}
-					}, [&](){ // finish
-						b.active = true;
-					});
-				});
-			};
-		}
-		else if (b.name == "LeverRotate") {
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["RotateExit"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(1,0,0));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["RotateExit"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["RotateExit"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "HardLever") {
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				scene.portals["HardExit"]->active = b.hit;
-				timers.emplace_back(0.12f, [&](float alpha){
-					float angle = b.hit ? glm::mix(0.0f, -90.0f, alpha) : glm::mix(-90.0f, 0.0f, alpha);
-					b.drawable->transform->rotation = glm::angleAxis(glm::radians(angle), glm::vec3(0,1,0));
-				}, [&](){
-					if (b.hit) {
-						Sound::play_3D(*portal_onsfx, 0.9f, scene.portals["HardExit"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					else {
-						Sound::play_3D(*portal_offsfx, 0.9f, scene.portals["HardExit"]->drawable->transform->make_local_to_world()[3]);
-						Sound::play_3D(*lever_off, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					}
-					b.active = true;
-				});
-			};
-		}
-		else if (b.name == "HardB") {
-			b.on_pressed = [&](){
-				b.hit = !b.hit;
-				b.active = false;
-				float const &zpos = b.drawable->transform->position.z;
-				// timer for button press, which makes timers for depress and portal rotation
-				timers.emplace_back(0.1f, [&, zpos](float alpha){ // press anim
-					b.drawable->transform->position.z = glm::mix(zpos, zpos - 0.2f, alpha);
-				}, [&, zpos](){ // start other anims when press done
-					Sound::play_3D(*lever_on, 1.0f, b.drawable->transform->make_local_to_world()[3], 10.0f);
-					Sound::play_3D(*rotatesfx, 0.4f, hard_rot_base->make_local_to_world()[3], 10.0f);
-					timers.emplace_back(0.15f, [&](float alpha){ // depress anim
-						b.drawable->transform->position.z = glm::mix(zpos - 0.2f, zpos, alpha);
-					});
-					timers.emplace_back(1.2f, [&](float alpha){ // rotate anim
-						if (b.hit) {
-							hard_rot_base->rotation = glm::angleAxis(glm::mix(glm::radians(0.0f), glm::radians(-90.0f), alpha), glm::vec3(0,1,0));
-						}
-						else {
-							hard_rot_base->rotation = glm::angleAxis(glm::mix(glm::radians(-90.0f), glm::radians(0.0f), alpha), glm::vec3(0,1,0));
-						}
-					}, [&](){ // finish
-						b.active = true;
-					});
-					// fix walkmesh stuff
-					if (b.hit) {					
-						scene.portals["HardBlue1"]->on_walkmesh = "Hard3";
-						scene.portals["HardW0"]->on_walkmesh = "Hard3";
-						if (walkmesh == walkmesh_map["Hard2"]) {
-							walkmesh = walkmesh_map["Hard3"];
-							player.at = walkmesh->nearest_walk_point(player.transform->position);
-						}
-					}
-					else {
-						scene.portals["HardBlue1"]->on_walkmesh = "Hard0";
-						scene.portals["HardW0"]->on_walkmesh = "Hard2";
-						if (walkmesh == walkmesh_map["Hard3"]) {
-							walkmesh = walkmesh_map["Hard2"];
-							player.at = walkmesh->nearest_walk_point(player.transform->position);
-						}
-					}
-				});
-			};
-
-		}
-		else if (b.name == "m_MilkBox") {
-			b.on_pressed = [&](){
-				b.active = false;
-				b.drawable->transform->scale = glm::vec3(0);
-				scene.portals["MilkRoom"]->active = false;
-				timers.emplace_back(13.0f, [&](float alpha){
-					if (alpha >= 0.769f) {
-						outro_count = 4;
-					}
-					else if (alpha >= 0.538f) {
-						outro_count = 3;
-					}
-					else if (alpha >= 0.308f) {
-						outro_count = 2;
-					}
-					else if (alpha >= 0.077f) {
-						outro_count = 1;
-					}
-				}, [&](){
-					outro_count = 5;
 				});
 			};
 		}
 	}
 
 
-	
-
-	//glEnable(GL_MULTISAMPLE);
-	currentShaderID = normalShaderID;
-	//currentShaderID = whiteworldShaderID;
-
 	//ScreenImage UI elements
 	cursor = Scene::ScreenImage(*cursor_texture, glm::vec2(0), glm::vec2(0.0125f), Scene::ScreenImage::Center, color_texture_program);
 	mouse_prompt = Scene::ScreenImage(*mouse_texture, glm::vec2(0), glm::vec2(0.04f), Scene::ScreenImage::Center, color_texture_program);
 
-	constexpr float milk_hint_width = 0.3f * 128.0f / 45.0f;
-
-	milk_hint0 = Scene::ScreenImage(*hint0_texture, glm::vec2(0.0f, -0.9f), glm::vec2(milk_hint_width, 0.3f), Scene::ScreenImage::Bottom, color_texture_program);
-	milk_hint = Scene::ScreenImage(*hint_texture, glm::vec2(0.0f, -0.9f), glm::vec2(milk_hint_width, 0.3f), Scene::ScreenImage::Bottom, color_texture_program);
-
 	constexpr float cont_hint_width = 0.2f * 16.0f / 9.0f;
-
 	controls_hint = Scene::ScreenImage(*controls_texture, glm::vec2(0.9f, 0.9f), glm::vec2(cont_hint_width, 0.2f), Scene::ScreenImage::TopRight, color_texture_program);
-
 	pause_text = Scene::ScreenImage(*pause_texture, glm::vec2(0), glm::vec2(0.4f), Scene::ScreenImage::Center, color_texture_program);
-
-	constexpr float title_hint_width = 0.4f * 4.0f;
-
-	title_text = Scene::ScreenImage(*title_texture, glm::vec2(0), glm::vec2(title_hint_width, 0.4f), Scene::ScreenImage::Center, color_texture_program);
-	credits_text = Scene::ScreenImage(*credits_texture, glm::vec2(0), glm::vec2(title_hint_width, 0.4f), Scene::ScreenImage::Center, color_texture_program);
-	thanks_text = Scene::ScreenImage(*thanks_texture, glm::vec2(0), glm::vec2(title_hint_width, 0.4f), Scene::ScreenImage::Center, color_texture_program);
-
 
 }
 
@@ -773,13 +251,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			shift.downs += 1;
 			shift.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_SPACE) {
-			space.downs += 1;
-			space.pressed = true;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_F3) {
-			debug_menu.downs += 1;
-			debug_menu.pressed = true;
+		} else if (evt.key.keysym.sym == SDLK_F1) {
+			hide_overlay.downs += 1;
+			hide_overlay.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_UP) {
 			up_arrow.downs += 1;
@@ -807,11 +281,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		} else if (evt.key.keysym.sym == SDLK_LSHIFT) {
 			shift.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_SPACE) {
-			space.pressed = false;
-			return true;
-		} else if (evt.key.keysym.sym == SDLK_F3) {
-			debug_menu.pressed = false;
+		} else if (evt.key.keysym.sym == SDLK_F1) {
+			hide_overlay.pressed = false;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_UP) {
 			up_arrow.pressed = false;
@@ -823,28 +294,6 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
 			SDL_SetRelativeMouseMode(SDL_TRUE);
-			// start playing if first time
-			if (!started_playing) {
-				started_playing = true;
-				home_sample = Sound::loop(*homebgm, 0.2f);
-				timers.emplace_back(5.5f, [&](float alpha){
-					if (alpha >= 3.5f / 5.5f) {
-						if (milk_hint_count < 2) {
-							milk_hint_count = 2;
-							Sound::play(*boomsfx, 0.5f);
-						}
-					}
-					else if (alpha >= 1.5f / 5.5f) {
-						if (milk_hint_count < 1) {
-							milk_hint_count = 1;
-							Sound::play(*boomsfx, 0.5f);
-						}
-					}
-				}, [&](){
-					controls_hint_show = true;
-					intro_done = true;
-				});
-			}
 			// unpause if paused
 			if (paused) {
 				paused = false;
@@ -868,7 +317,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
-		if (SDL_GetRelativeMouseMode() == SDL_TRUE && !player.animation_lock_look) {
+		if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
 			glm::vec2 motion = glm::vec2(
 				evt.motion.xrel / float(window_size.y),
 				-evt.motion.yrel / float(window_size.y)
@@ -892,31 +341,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 void PlayMode::update(float elapsed) {
 	if (paused) return;
-	//used for intro
-	if (player.fall_to_walkmesh) {
-		player.velocity.x = 0;
-		player.velocity.y = 0;
-		player.velocity.z -= player.gravity * elapsed;
-		glm::vec3 new_pos = player.transform->position + player.velocity * elapsed;
-		WalkPoint nearest_walk_point = walkmesh->nearest_walk_point(player.transform->position);
-		if (new_pos.z <= walkmesh->to_world_point(nearest_walk_point).z) {
-			player.fall_to_walkmesh = false;
-			player.uses_walkmesh = true;
-			player.at = nearest_walk_point;
-			currentShaderID = whiteworldShaderID;
-			EnableFog(whiteworldShaderID);
-			ambient_sample = Sound::loop(*ambient, 0.0f);
-			timers.emplace_back(2.0f, [&](float alpha){
-				ambient_sample->volume = glm::mix(0.0f, 0.4f, alpha);
-			});
-		}
-		else {
-			player.transform->position = new_pos;
-		}
-	}
 
 	//interaction with buttons
-	constexpr float MaxButtonPollRange2 = 100.0f; //speed up checking a bit by ignoring far buttons
+	constexpr float MaxButtonPollRange2 = 20.0f; //speed up checking a bit by ignoring far buttons
 	{
 		// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 		glm::mat4 const &cam_to_world = player.camera->transform->make_local_to_world();
@@ -956,7 +383,7 @@ void PlayMode::update(float elapsed) {
 
 
 	//player walking:
-	if (!player.animation_lock_move) {
+	{
 		//combine inputs into a move:
 		constexpr float PlayerSpeed = 5.0f;
 		constexpr float PlayerSprintSpeed = 8.0f;
@@ -970,19 +397,6 @@ void PlayMode::update(float elapsed) {
 		if (move != glm::vec2(0.0f)) move = shift.pressed ? 
 			glm::normalize(move) * PlayerSprintSpeed * elapsed : glm::normalize(move) * PlayerSpeed * elapsed;
 		
-		footstep_acc += glm::length(move);
-		if (footstep_acc >= footstep_time) {
-			footstep_acc = 0;
-			int index = std::rand() % 4;
-			if (shift.pressed) {
-				static Sound::Sample const *arr[4] = {run1sfx, run2sfx, run3sfx, run4sfx};
-				Sound::play(*arr[index], 0.35f);
-			}
-			else {
-				static Sound::Sample const *arr[4] = {walk1sfx, walk2sfx, walk3sfx, walk4sfx};
-				Sound::play(*arr[index], 0.2f);
-			}
-		}
 
 		//get move in world coordinate system:
 		glm::vec3 remain = player.transform->make_local_to_world() * glm::vec4(move.x, move.y, 0.0f, 0.0f);
@@ -1057,22 +471,20 @@ void PlayMode::update(float elapsed) {
 			*/
 		}
 		else {
-			//player.transform->position += remain;
+			player.transform->position += remain;
 		}
 	}
 
 	//debug stuff
 	frame_delta = elapsed;
-	if (debug_menu.pressed && !debug_menu.last_pressed) {
-		draw_debug = !draw_debug;
+	if (hide_overlay.pressed && !hide_overlay.last_pressed) {
+		hide_all_overlays = !hide_all_overlays;
 	}
 	if (up_arrow.pressed && !up_arrow.last_pressed) {
 		scene.default_draw_recursion_max += 1;
-		std::cout << "Max draw recursion lvl: " << scene.default_draw_recursion_max << "\n";
 	}
 	if (down_arrow.pressed && !down_arrow.last_pressed && scene.default_draw_recursion_max > 0) {
 		scene.default_draw_recursion_max -= 1;
-		std::cout << "Max draw recursion lvl: " << scene.default_draw_recursion_max << "\n";
 	}
 
 	//button cleanup
@@ -1084,8 +496,7 @@ void PlayMode::update(float elapsed) {
 		down.downs = 0;
 		shift.downs = 0;
 		click.downs = 0;
-		space.downs = 0;
-		debug_menu.downs = 0;
+		hide_overlay.downs = 0;
 		up_arrow.downs = 0;
 		down_arrow.downs = 0;
 
@@ -1096,8 +507,7 @@ void PlayMode::update(float elapsed) {
 		down.last_pressed = down.pressed;
 		shift.last_pressed = shift.pressed;
 		click.last_pressed = click.pressed;
-		space.last_pressed = space.pressed;
-		debug_menu.last_pressed = debug_menu.pressed;
+		hide_overlay.last_pressed = hide_overlay.pressed;
 		up_arrow.last_pressed = up_arrow.pressed;
 		down_arrow.last_pressed = down_arrow.pressed;
 	}
@@ -1122,15 +532,6 @@ void PlayMode::update(float elapsed) {
 		}
 	}
 
-	//Compare player position to add fog
-	if(glm::distance(player.transform->position, player_start) < 5 ){
-		EnableFog(whiteworldShaderID);
-		SetFogParams(whiteworldShaderID, glm::vec4(0.8f, 0.4f, 0.4f, 1.0f), 12.5f, 1.8f);
-	}
-
-	if(glm::distance(player.transform->position, player_end) < 5 ){
-		DisableFog(whiteworldShaderID);
-	}
 }
 
 void PlayMode::handle_portals() {
@@ -1143,6 +544,7 @@ void PlayMode::handle_portals() {
 		Scene::Portal *p = pair.second;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
+		//if () check if player in portal tracking bbox
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 
 		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
@@ -1163,194 +565,15 @@ void PlayMode::handle_portals() {
 			glm::mat4x3 const &dest_world = p->dest->drawable->transform->make_local_to_world();
 			glm::mat4 const m_reverse = glm::mat4(dest_world) * glm::mat4(p_local);
 
-			// SPECIAL CASES ----------------------------
-			bool normal_tp = true;
-			if (p == scene.portals["PortalFridge"]) {
-				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1) - glm::vec4(0, 1.8f, 1.8f, 0);
-				player.transform->rotation = glm::angleAxis(glm::radians(180.0f), glm::vec3(0,0,1));
-				player.velocity.z = -0.4f * player.gravity;
-				player.camera->transform->rotation = glm::angleAxis(0.05f * glm::radians(180.0f), glm::vec3(1,0,0));
-				walkmesh = walkmesh_map[p->dest->on_walkmesh];
-				player.uses_walkmesh = false;
-				player.fall_to_walkmesh = true;
-				p->active = false;
-				normal_tp = false;
-			}
-			else if (p == scene.portals["StairPortal0"]) {
-				scene.portals["StairPortalA"]->dest = p;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal3"]->active = false;
+			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
+			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
+			p->dest->sleeping = true;
 
-				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal0b"];
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.default_draw_recursion_max = 1;
+			scene.current_group = &scene.portal_groups[p->dest->group];
 
-			}
-			else if (p == scene.portals["StairPortal1"]) {
-				scene.portals["StairPortalA"]->dest = p;
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal3"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal1b"];
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["StairPortal2"]) {
-				scene.portals["StairPortalA"]->dest = p;
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal3"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal2b"];
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["StairPortal3"]) {
-				scene.portals["StairPortalA"]->dest = p;
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = scene.portals["StairPortal3b"];
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["StairPortalA"]) {
-				scene.portals["StairPortal0"]->active = true;
-				scene.portals["StairPortal1"]->active = true;
-				scene.portals["StairPortal2"]->active = true;
-				scene.portals["StairPortal3"]->active = true;
-				scene.default_draw_recursion_max = 0;
-			}
-			else if (p == scene.portals["StairPortal0b"]) {
-				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal0"];
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal3"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = p;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-
-			}
-			else if (p == scene.portals["StairPortal1b"]) {
-				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal1"];
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal3"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = p;
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["StairPortal2b"]) {
-				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal2"];
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal3"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = p;
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["StairPortal3b"]) {
-				scene.portals["StairPortalA"]->dest = scene.portals["StairPortal3"];
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-
-				scene.portals["StairPortalB"]->dest = p;
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["StairPortalB"]) {
-				scene.portals["StairPortal0b"]->active = true;
-				scene.portals["StairPortal1b"]->active = true;
-				scene.portals["StairPortal2b"]->active = true;
-				scene.portals["StairPortal3b"]->active = true;
-				scene.default_draw_recursion_max = 0;
-			}
-
-			else if (p == scene.portals["HallExit"]) {
-				scene.portals["StairPortalA"]->active = false;
-				scene.portals["StairPortalB"]->active = false;
-				scene.portals["StairPortal0"]->active = false;
-				scene.portals["StairPortal1"]->active = false;
-				scene.portals["StairPortal2"]->active = false;
-				scene.portals["StairPortal0b"]->active = false;
-				scene.portals["StairPortal1b"]->active = false;
-				scene.portals["StairPortal2b"]->active = false;
-				scene.portals["StairPortal3b"]->active = false;
-				scene.portals["Drop0"]->active = false;
-				scene.portals["Drop1"]->active = false;
-
-				scene.portals["FunZone"]->active = true;
-
-				ambient_sample->volume = 0.15f;
-
-				scene.default_draw_recursion_max = 1;
-			}
-			else if (p == scene.portals["FunZone"]) {
-				scene.portals["StairPortalA"]->active = true;
-				scene.portals["StairPortalB"]->active = true;
-				scene.portals["StairPortal0"]->active = true;
-				scene.portals["StairPortal1"]->active = true;
-				scene.portals["StairPortal2"]->active = true;
-				scene.portals["StairPortal0b"]->active = true;
-				scene.portals["StairPortal1b"]->active = true;
-				scene.portals["StairPortal2b"]->active = true;
-				scene.portals["StairPortal3b"]->active = true;
-				scene.portals["Drop0"]->active = true;
-				scene.portals["Drop1"]->active = true;
-
-				scene.portals["FunZone"]->active = false;
-
-				ambient_sample->volume = 0.4f;
-
-				scene.default_draw_recursion_max = 0;
-			}
-			else if (p == scene.portals["HardW0"]) {
-				scene.portals["HardRed0"]->on_walkmesh = "Hard1";
-				scene.portals["HardRed1"]->on_walkmesh = "Hard1";
-			}
-			else if (p == scene.portals["HardW1"]) {
-				scene.portals["HardRed0"]->on_walkmesh = "Hard0";
-				scene.portals["HardRed1"]->on_walkmesh = "Hard0";
-			}
-
-
-
-			// normal case below ------------------------
-
-			if (normal_tp) {
-				player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
-				player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
-				p->dest->sleeping = true;
-
-				scene.current_group = &scene.portal_groups[p->dest->group];
-
-				walkmesh = walkmesh_map[p->dest->on_walkmesh];
-				if (walkmesh != nullptr) {
-					player.at = walkmesh->nearest_walk_point(player.transform->position);
-				}
+			walkmesh = walkmesh_map[p->dest->on_walkmesh];
+			if (walkmesh != nullptr) {
+				player.at = walkmesh->nearest_walk_point(player.transform->position);
 			}
 			
 		}
@@ -1359,24 +582,14 @@ void PlayMode::handle_portals() {
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
-	//need to resize framebuffer if drawable size changes:
-	if(drawable_size.x != drawableSize.x || drawable_size.y != drawableSize.y){
-		drawableSize = drawable_size;
-		InitFrameBuffer(drawableSize);
-	}
-
 	//update camera aspect ratio for drawable:
 	player.camera->aspect = float(drawable_size.x) / float(drawable_size.y);
 
-	//Start writing to framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-	//glDisable(GL_ALPHA_TEST);
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
 	glClearDepth(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); 
-	GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-	glDrawBuffers(4, drawBuffers);
 
 	GL_ERRORS();
 
@@ -1388,9 +601,6 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
 	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(0.2f, 0.2f, 0.2f)));
 	glUseProgram(0);
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS); //this is the default depth comparison function, but FYI you can change it.
 
 	scene.draw(*player.camera);
 
@@ -1406,83 +616,38 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 	*/
 
-	// 2nd Pass(Only render the screen space quad)
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
-	//glEnable(GL_ALPHA_TEST);
-	// clear all relevant buffers
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glUseProgram(currentShaderID);
-	if(currentShaderID == whiteworldShaderID){
-		glUniform1i(glGetUniformLocation(currentShaderID, "width"), drawable_size.x);
-		glUniform1i(glGetUniformLocation(currentShaderID, "height"), drawable_size.y);
-	}
-
-	glBindVertexArray(quadVAO);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, textureNormalbuffer);
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, textureDepthbuffer);
-	glActiveTexture(GL_TEXTURE3);
-	glBindTexture(GL_TEXTURE_2D, textureVertexColorbuffer);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
-
 	// now draw UI elements
 	float aspect = float(drawable_size.x) / float(drawable_size.y);
-
-	// cursor
-	if (player.show_mouse_prompt) {
-		mouse_prompt.draw(aspect);
-	}
-	else {
-		cursor.draw(aspect);
-	}
-
-	if (milk_hint_count == 1) {
-		milk_hint0.draw(aspect);
-	}
-	else if (milk_hint_count == 2) {
-		milk_hint.draw(aspect);
-	}
-
-	if (controls_hint_show) {
-		controls_hint.draw(aspect);
-	}
-
-	if (outro_count == 5) {
-		thanks_text.draw(aspect);
-	}
-	else if (outro_count == 3) {
-		credits_text.draw(aspect);
-	}
-	else if (outro_count == 1) {
-		title_text.draw(aspect);
-	}
 
 	if (paused) {
 		pause_text.draw(aspect);
 	}
 
-	{ //use DrawLines to overlay some text:
-		glDisable(GL_DEPTH_TEST);
-		DrawLines lines(glm::mat4(
-			1.0f / aspect, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		));
+	if (!hide_all_overlays) {
+		// cursor
+		if (player.show_mouse_prompt) {
+			mouse_prompt.draw(aspect);
+		}
+		else {
+			cursor.draw(aspect);
+		}
 
-		constexpr float H = 0.09f;
-		float ofs = 2.0f / drawable_size.y;
+		// controls
+		controls_hint.draw(aspect);
 
-		if (draw_debug) {
-			std::string const &fps = std::to_string(int(glm::round(1.0f / frame_delta)));
+		{ //use DrawLines to overlay some text:
+			glDisable(GL_DEPTH_TEST);
+			DrawLines lines(glm::mat4(
+				1.0f / aspect, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f
+			));
+
+			constexpr float H = 0.09f;
+			float ofs = 2.0f / drawable_size.y;
+
+			std::string const &fps = std::to_string(int(glm::round(1.0f / frame_delta))) + " FPS";
 			lines.draw_text(fps,
 			glm::vec3(-aspect + 0.1f * H, 0.99f - H, 0.0f),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
@@ -1491,7 +656,18 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(-aspect + 0.1f * H + ofs, 0.99f - H + ofs, 0.0f),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+			
+			std::string const &recursion_lvl = "Portal recursion count: " + std::to_string(int(scene.default_draw_recursion_max));
+			lines.draw_text(recursion_lvl, 
+			glm::vec3(-aspect + 0.1f * H, 0.99f - 2.0f * H + ofs, 0.0f),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+			lines.draw_text(recursion_lvl,
+			glm::vec3(-aspect + 0.1f * H + ofs, 0.99f - 2.0f * H + 2.0f * ofs, 0.0f),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 		}
+
 	}
 	GL_ERRORS();
 }

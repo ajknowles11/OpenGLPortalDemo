@@ -143,8 +143,7 @@ struct Scene {
 			Portal(drawable_, box_, on_walkmesh_, nullptr, group_) {}
 		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, 
 			Portal *dest_, std::string group_) : drawable(drawable_), 
-			box(box_.min + glm::vec3(0,-0.25f, 0), box_.max + glm::vec3(0,0.25f,0)), 
-			on_walkmesh(on_walkmesh_), dest(dest_), group(group_) {}
+			box(box_), on_walkmesh(on_walkmesh_), dest(dest_), group(group_) {}
 		~Portal() {}
 		Drawable *drawable = nullptr;
 		BoxCollider box;
@@ -194,7 +193,7 @@ struct Scene {
 		GLint recursion_lvl = 0,
 		Portal const *from = nullptr) const;
 	
-	GLint default_draw_recursion_max = 0;
+	GLint default_draw_recursion_max = 7;
 
 	//This helper function draws normal drawables
 	void draw_non_portals(glm::mat4 const &world_to_clip, 
