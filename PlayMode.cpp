@@ -125,6 +125,10 @@ Load< Scene::Texture > pause_texture(LoadTagDefault, []() -> Scene::Texture cons
 	return new Scene::Texture(data_path("textures/pause.png"));
 });
 
+Load< Scene::Texture > dingus_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/dingus_nowhiskers.png"));
+});
+
 
 // ---------------------------
 
@@ -192,6 +196,28 @@ PlayMode::PlayMode() : scene(*level_scene) {
 					b.active = true;
 				});
 			};
+		}
+	}
+
+	//Texture hookup
+	{
+		GLuint dingus_tex = 0;
+		glGenTextures(1, &dingus_tex);
+
+		glBindTexture(GL_TEXTURE_2D, dingus_tex);
+		
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dingus_texture->size.x, dingus_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, dingus_texture->pixels.data());
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		for (auto &d : scene.drawables) {
+			if (d.transform->name == "dingus") {
+				d.pipeline.textures->texture = dingus_tex;
+			}
 		}
 	}
 
@@ -452,6 +478,9 @@ void PlayMode::update(float elapsed) {
 			//update player's position to respect walking:
 			player.transform->position = walkmesh->to_world_point(player.at);
 
+			// This stuff is nice for walking on walls and such as you can automatically rotate with the surface normal. 
+			// But in normal use it makes inclines weird (you tilt when walking up stairs). I just kept it here for possible future puzzles.
+
 			// { //update player's rotation to respect local (smooth) up-vector:
 				
 			// 	glm::quat adjust = glm::rotation(
@@ -547,30 +576,39 @@ void PlayMode::handle_portals() {
 		//if () check if player in portal tracking bbox
 		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 
-		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world * glm::vec4(0,0,0,1));
+		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world[3]);
 		bool now_in_front = 0 < glm::dot(offset_from_portal, glm::normalize(glm::vec3(p_world[1])));
 		if (now_in_front == p->player_in_front) {
 			p->sleeping = false;
 			continue;
 		}
 		p->player_in_front = now_in_front;
+
 		if (p->sleeping) {
 			p->sleeping = false;
 			continue;
 		}
-		glm::mat4 p_local = p->drawable->transform->make_world_to_local();
-		if (point_in_box(p_local * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
-			//teleport
+		
+		glm::mat4 world_to_portal = p->drawable->transform->make_world_to_local();
+		if (point_in_box(world_to_portal * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
+			// Teleport the player (or object)
 
-			glm::mat4x3 const &dest_world = p->dest->drawable->transform->make_local_to_world();
-			glm::mat4 const m_reverse = glm::mat4(dest_world) * glm::mat4(p_local);
+			glm::mat4x3 const &dest_to_world = p->dest->drawable->transform->make_local_to_world();
+			glm::mat4 const &portal_to_dest_mat = glm::mat4(dest_to_world) * glm::mat4(world_to_portal);
 
-			player.transform->position = m_reverse * glm::vec4(player.transform->position, 1);
-			player.transform->rotation = m_reverse * glm::mat4(player.transform->rotation);
+			player.transform->position = portal_to_dest_mat * glm::vec4(player.transform->position, 1);
+			player.transform->rotation = portal_to_dest_mat * glm::mat4(player.transform->rotation);
+			// I considered working with scale here but didn't end up getting it working and moved on from that puzzle idea anyway
+
+			// Stop destination from teleporting for 1 frame (so we don't instantly return)
 			p->dest->sleeping = true;
 
+			// Below stuff is all specific to this game/implementation. 
+
+			// We only draw portals in one "active" group at a time, so when we teleport we need to activate whatever group the destination portal is in
 			scene.current_group = &scene.portal_groups[p->dest->group];
 
+			// And we use walkmesh for movement so we have to make sure the current walkmesh is the one on which the destination portal sits
 			walkmesh = walkmesh_map[p->dest->on_walkmesh];
 			if (walkmesh != nullptr) {
 				player.at = walkmesh->nearest_walk_point(player.transform->position);
@@ -596,10 +634,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	//set up light type and position for lit_color_texture_program:
 	// TODO: consider using the Light(s) in the scene to do this
 	glUseProgram(lit_color_texture_program->program);
-	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 1);
-	glUniform3fv(lit_color_texture_program->LIGHT_LOCATION_vec3, 1, glm::value_ptr(glm::vec3(-7.0f, 0.5f, 2.1f)));
-	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::vec3(0.0f, 0.0f,-1.0f)));
-	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(0.2f, 0.2f, 0.2f)));
+	glUniform1i(lit_color_texture_program->LIGHT_TYPE_int, 3);
+	glUniform3fv(lit_color_texture_program->LIGHT_DIRECTION_vec3, 1, glm::value_ptr(glm::normalize(glm::vec3(0.4f, 0.1f, -0.8f))));
+	glUniform3fv(lit_color_texture_program->LIGHT_ENERGY_vec3, 1, glm::value_ptr(glm::vec3(1.0f, 1.0f, 0.96f)));
 	glUseProgram(0);
 
 	scene.draw(*player.camera);
