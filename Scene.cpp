@@ -410,14 +410,14 @@ bool Scene::is_portal_visible(glm::mat4 const &world_to_clip, Portal const &port
 
 	// Get all verts of bbox, in clip space
 	glm::vec4 const vertices[8] = {
-		portal_to_clip * glm::vec4(portal.box.min, 1), 
-		portal_to_clip * glm::vec4(portal.box.min.x, portal.box.min.y, portal.box.max.z, 1), 
-		portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.min.z, 1), 
-		portal_to_clip * glm::vec4(portal.box.min.x, portal.box.max.y, portal.box.max.z, 1), 
-		portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.min.z, 1), 
-		portal_to_clip * glm::vec4(portal.box.max.x, portal.box.min.y, portal.box.max.z, 1), 
-		portal_to_clip * glm::vec4(portal.box.max.x, portal.box.max.y, portal.box.min.z, 1), 
-		portal_to_clip * glm::vec4(portal.box.max, 1)
+		portal_to_clip * glm::vec4(portal.tp_box.min, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.min.x, portal.tp_box.min.y, portal.tp_box.max.z, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.min.x, portal.tp_box.max.y, portal.tp_box.min.z, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.min.x, portal.tp_box.max.y, portal.tp_box.max.z, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.max.x, portal.tp_box.min.y, portal.tp_box.min.z, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.max.x, portal.tp_box.min.y, portal.tp_box.max.z, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.max.x, portal.tp_box.max.y, portal.tp_box.min.z, 1), 
+		portal_to_clip * glm::vec4(portal.tp_box.max, 1)
 	};
 
 	// Check if all verts lie outside any one plane

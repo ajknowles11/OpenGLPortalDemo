@@ -371,35 +371,16 @@ void PlayMode::update(float elapsed) {
 	//interaction with buttons
 	constexpr float MaxButtonPollRange2 = 20.0f; //speed up checking a bit by ignoring far buttons
 	{
-		// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
 		glm::mat4 const &cam_to_world = player.camera->transform->make_local_to_world();
 		glm::vec4 const &cam_invdir = glm::vec4(glm::vec3(1.0f / -cam_to_world[2]), 0);
 		glm::vec4 const &cam_origin = cam_to_world[3];
-		auto bbox_hit = [](Scene::BoxCollider box, glm::vec3 invdir, glm::vec3 ray_origin, float range_mult){
-
-			float t1 = (box.min.x - ray_origin.x)*invdir.x;
-			float t2 = (box.max.x - ray_origin.x)*invdir.x;
-			float t3 = (box.min.y - ray_origin.y)*invdir.y;
-			float t4 = (box.max.y - ray_origin.y)*invdir.y;
-			float t5 = (box.min.z - ray_origin.z)*invdir.z;
-			float t6 = (box.max.z - ray_origin.z)*invdir.z;
-
-			float tmin = glm::max(glm::max(glm::min(t1,t2), glm::min(t3,t4)), glm::min(t5,t6));
-			float tmax = glm::min(glm::min(glm::max(t1,t2), glm::max(t3,t4)), glm::max(t5,t6));
-
-			if (tmax < 0) return false;
-			if (tmin > tmax) return false;
-			if (tmin > 1.7f * range_mult) return false;
-
-			return true;
-		};
 
 		player.show_mouse_prompt = false;
 		for (auto &b : scene.buttons) {
 			if (!b.active) continue;
 			if (glm::distance2(glm::vec3(cam_origin), b.drawable->transform->make_local_to_world()[3]) > MaxButtonPollRange2) continue;
 			glm::mat4x3 const &b_to_local = b.drawable->transform->make_world_to_local();
-			if (bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin, b.range_mult)) {
+			if (Scene::ray_bbox_hit(b.box, b_to_local * cam_invdir, b_to_local * cam_origin, 1.7f * b.range_mult)) {
 				player.show_mouse_prompt = true;
 				if (click.pressed && !click.last_pressed && b.on_pressed) b.on_pressed();
 				break;
@@ -565,32 +546,43 @@ void PlayMode::update(float elapsed) {
 
 void PlayMode::handle_portals() {
 
-	auto point_in_box = [](glm::vec3 x, glm::vec3 min, glm::vec3 max){
-		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
-	};
-
 	for (auto const &pair : scene.portals) {
 		Scene::Portal *p = pair.second;
 		if (p->dest == nullptr) continue;
 		if (!p->active) continue;
-		//if () check if player in portal tracking bbox
-		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
+		
+		glm::mat4 world_to_portal = p->drawable->transform->make_world_to_local();
+		if (!Scene::point_in_box(world_to_portal * glm::vec4(player.transform->position, 1), p->tracking_box.min, p->tracking_box.max)) {
+			p->player_tracked = false;
+			continue;
+		}
 
+		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
 		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world[3]);
+
+		// if just entered tracking box don't tp (could have stepped in on other side of plane causing improper tp)
+		if (!p->player_tracked) {
+			p->player_tracked = true;
+			p->player_last_pos = offset_from_portal;
+			continue;
+		}
+		
 		bool now_in_front = 0 < glm::dot(offset_from_portal, glm::normalize(glm::vec3(p_world[1])));
 		if (now_in_front == p->player_in_front) {
 			p->sleeping = false;
+			p->player_last_pos = offset_from_portal;
 			continue;
 		}
 		p->player_in_front = now_in_front;
 
 		if (p->sleeping) {
 			p->sleeping = false;
+			p->player_last_pos = offset_from_portal;
 			continue;
 		}
-		
-		glm::mat4 world_to_portal = p->drawable->transform->make_world_to_local();
-		if (point_in_box(world_to_portal * glm::vec4(player.transform->position, 1), p->box.min, p->box.max)) {
+
+		// check if player passed through portal
+		if (Scene::line_bbox_hit(p->player_last_pos, offset_from_portal, p->tp_box.min, p->tp_box.max)) {
 			// Teleport the player (or object)
 
 			glm::mat4x3 const &dest_to_world = p->dest->drawable->transform->make_local_to_world();
@@ -615,6 +607,7 @@ void PlayMode::handle_portals() {
 			}
 			
 		}
+		p->player_last_pos = offset_from_portal;
 	}
 }
 

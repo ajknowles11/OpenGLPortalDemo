@@ -136,21 +136,72 @@ struct Scene {
 		glm::vec3 min = glm::vec3(0);
 		glm::vec3 max = glm::vec3(0);
 	};
+	
+	static bool point_in_box(glm::vec3 const &x, glm::vec3 const &min, glm::vec3 const &max) {
+		return (min.x <= x.x && x.x <= max.x) && (min.y <= x.y && x.y <= max.y) && (min.z <= x.z && x.z <= max.z);
+	}
+
+	// ray box intersection from zacharmarz's answer: https://gamedev.stackexchange.com/questions/18436/most-efficient-aabb-vs-ray-collision-algorithms
+	static bool ray_bbox_hit(Scene::BoxCollider const &box, glm::vec3 const &invdir, 
+			glm::vec3 const &ray_origin, float const &range) {
+		float t1 = (box.min.x - ray_origin.x)*invdir.x;
+		float t2 = (box.max.x - ray_origin.x)*invdir.x;
+		float t3 = (box.min.y - ray_origin.y)*invdir.y;
+		float t4 = (box.max.y - ray_origin.y)*invdir.y;
+		float t5 = (box.min.z - ray_origin.z)*invdir.z;
+		float t6 = (box.max.z - ray_origin.z)*invdir.z;
+
+		float tmin = glm::max(glm::max(glm::min(t1,t2), glm::min(t3,t4)), glm::min(t5,t6));
+		float tmax = glm::min(glm::min(glm::max(t1,t2), glm::max(t3,t4)), glm::max(t5,t6));
+
+		if (tmax < 0) return false;
+		if (tmin > tmax) return false;
+		if (tmin > range) return false;
+
+		return true;
+	}
+
+	//two-point line bbox intersection from "CBBox::IsLineInBox": https://3dkingdoms.com/weekly/weekly.php?a=21
+	static bool line_bbox_hit(glm::vec3 const &a, glm::vec3 const &b, glm::vec3 const &min, glm::vec3 const &max) {
+		glm::vec3 const &center = (min + max) * 0.5f;
+		glm::vec3 const &box_extent = max - center;
+
+		glm::vec3 const &ax = a - center;
+		glm::vec3 const &bx = b - center;
+
+		glm::vec3 const &line_midpoint = (ax + bx) * 0.5f;
+		glm::vec3 const &line_half = (ax - line_midpoint);
+		glm::vec3 const &line_extent = glm::vec3(glm::abs(line_half.x), glm::abs(line_half.y), glm::abs(line_half.z));
+
+		// Separating axis test
+		if (glm::abs(line_midpoint.x) > box_extent.x + line_extent.x) return false;
+		if (glm::abs(line_midpoint.y) > box_extent.y + line_extent.y) return false;
+		if (glm::abs(line_midpoint.z) > box_extent.z + line_extent.z) return false;
+
+		if (glm::abs(line_midpoint.y * line_half.z - line_midpoint.z * line_half.y) > (box_extent.y * line_extent.z + box_extent.z * line_extent.y)) return false;
+		if (glm::abs(line_midpoint.x * line_half.z - line_midpoint.z * line_half.x) > (box_extent.x * line_extent.z + box_extent.z * line_extent.x)) return false;
+		if (glm::abs(line_midpoint.x * line_half.y - line_midpoint.y * line_half.x) > (box_extent.x * line_extent.y + box_extent.y * line_extent.x)) return false;
+
+		return true;
+	}
 
 	struct Portal {
 		Portal() : active(false) {}
-		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, std::string group_) : 
-			Portal(drawable_, box_, on_walkmesh_, nullptr, group_) {}
-		Portal(Drawable *drawable_, BoxCollider box_, std::string on_walkmesh_, 
+		Portal(Drawable *drawable_, BoxCollider tp_box_, std::string on_walkmesh_, std::string group_) : 
+			Portal(drawable_, tp_box_, on_walkmesh_, nullptr, group_) {}
+		Portal(Drawable *drawable_, BoxCollider tp_box_, std::string on_walkmesh_, 
 			Portal *dest_, std::string group_) : drawable(drawable_), 
-			box(box_), on_walkmesh(on_walkmesh_), dest(dest_), group(group_) {}
+			tp_box(tp_box_), tracking_box(tp_box_.min - glm::vec3(1.5f, 1.5f, 1.5f), tp_box_.max + glm::vec3(1.5f, 1.5f, 1.5f)), on_walkmesh(on_walkmesh_), dest(dest_), group(group_) {}
 		~Portal() {}
 		Drawable *drawable = nullptr;
-		BoxCollider box;
+		BoxCollider tp_box;
+		BoxCollider tracking_box;
 		std::string on_walkmesh;
 		Portal *dest = nullptr;
 		std::string group;
+		bool player_tracked = false;
 		bool player_in_front = false;
+		glm::vec3 player_last_pos = glm::vec3(0);
 		bool sleeping = false;
 
 		bool active = true;
@@ -193,7 +244,8 @@ struct Scene {
 		GLint recursion_lvl = 0,
 		Portal const *from = nullptr) const;
 	
-	GLint default_draw_recursion_max = 16;
+	// Technically can't draw beyond 255 here but feel free to go above to waste resources
+	GLint default_draw_recursion_max = 127;
 
 	//This helper function draws normal drawables
 	void draw_non_portals(glm::mat4 const &world_to_clip, 
