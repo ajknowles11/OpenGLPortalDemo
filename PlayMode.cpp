@@ -554,12 +554,13 @@ void PlayMode::handle_portals() {
 		glm::mat4 world_to_portal = p->drawable->transform->make_world_to_local();
 		glm::vec3 offset_from_portal = world_to_portal * glm::vec4(player.transform->position, 1);
 
+		// only consider player within tracking box
 		if (!Scene::point_in_box(offset_from_portal, p->tracking_box.min, p->tracking_box.max)) {
 			p->player_tracked = false;
 			continue;
 		}
 
-		// if just entered tracking box don't tp (could have stepped in on other side of plane causing improper tp)
+		// if just entered tracking box don't tp (could have stepped out of box on side A, stepped in on side B which would pass all further checks and cause improper tp)
 		if (!p->player_tracked) {
 			p->player_tracked = true;
 			p->player_last_pos = offset_from_portal;
@@ -567,6 +568,7 @@ void PlayMode::handle_portals() {
 		}
 		
 		bool now_in_front = 0 < glm::dot(offset_from_portal, glm::vec3(0,1,0));
+		// confirm player crossed portal xz plane
 		if (now_in_front == p->player_in_front) {
 			p->sleeping = false;
 			p->player_last_pos = offset_from_portal;
@@ -574,13 +576,14 @@ void PlayMode::handle_portals() {
 		}
 		p->player_in_front = now_in_front;
 
+		// don't tp if sleeping, meaning we just came from this portal (could have technically crossed plane)
 		if (p->sleeping) {
 			p->sleeping = false;
 			p->player_last_pos = offset_from_portal;
 			continue;
 		}
 
-		// check if player passed through portal
+		// lastly, check if player passed through portal
 		if (Scene::line_bbox_hit(p->player_last_pos, offset_from_portal, p->tp_box.min, p->tp_box.max)) {
 			// Teleport the player (or object)
 
@@ -594,7 +597,7 @@ void PlayMode::handle_portals() {
 			// Stop destination from teleporting for 1 frame (so we don't instantly return)
 			p->dest->sleeping = true;
 
-			// Below stuff is all specific to this game/implementation. 
+			// Below stuff is more specific to this game/implementation. 
 
 			// We only draw portals in one "active" group at a time, so when we teleport we need to activate whatever group the destination portal is in
 			scene.current_group = &scene.portal_groups[p->dest->group];
