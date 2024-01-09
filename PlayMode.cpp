@@ -552,13 +552,12 @@ void PlayMode::handle_portals() {
 		if (!p->active) continue;
 		
 		glm::mat4 world_to_portal = p->drawable->transform->make_world_to_local();
-		if (!Scene::point_in_box(world_to_portal * glm::vec4(player.transform->position, 1), p->tracking_box.min, p->tracking_box.max)) {
+		glm::vec3 offset_from_portal = world_to_portal * glm::vec4(player.transform->position, 1);
+
+		if (!Scene::point_in_box(offset_from_portal, p->tracking_box.min, p->tracking_box.max)) {
 			p->player_tracked = false;
 			continue;
 		}
-
-		glm::mat4 p_world = p->drawable->transform->make_local_to_world();
-		glm::vec3 offset_from_portal = player.transform->position - glm::vec3(p_world[3]);
 
 		// if just entered tracking box don't tp (could have stepped in on other side of plane causing improper tp)
 		if (!p->player_tracked) {
@@ -567,7 +566,7 @@ void PlayMode::handle_portals() {
 			continue;
 		}
 		
-		bool now_in_front = 0 < glm::dot(offset_from_portal, glm::normalize(glm::vec3(p_world[1])));
+		bool now_in_front = 0 < glm::dot(offset_from_portal, glm::vec3(0,1,0));
 		if (now_in_front == p->player_in_front) {
 			p->sleeping = false;
 			p->player_last_pos = offset_from_portal;
