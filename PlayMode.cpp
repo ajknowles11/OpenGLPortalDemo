@@ -129,6 +129,10 @@ Load< Scene::Texture > dingus_texture(LoadTagDefault, []() -> Scene::Texture con
 	return new Scene::Texture(data_path("textures/dingus_nowhiskers.png"));
 });
 
+Load< Scene::Texture > wood_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/wood.png"));
+});
+
 
 // ---------------------------
 
@@ -201,22 +205,34 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 	//Texture hookup
 	{
-		GLuint dingus_tex = 0;
-		glGenTextures(1, &dingus_tex);
+		auto make_tex = [](Load<Scene::Texture> texture, int wrap_s, int wrap_t, int mag_filt, int min_filt){
+			GLuint tex = 0;
 
-		glBindTexture(GL_TEXTURE_2D, dingus_tex);
+			glGenTextures(1, &tex);
+
+			glBindTexture(GL_TEXTURE_2D, tex);
 		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dingus_texture->size.x, dingus_texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, dingus_texture->pixels.data());
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->size.x, texture->size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture->pixels.data());
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glBindTexture(GL_TEXTURE_2D, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_s);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_t);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filt);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filt);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			return tex;
+		};
+
+		GLuint dingus_tex = make_tex(dingus_texture, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
+		GLuint wood_tex = make_tex(wood_texture, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+		
 
 		for (auto &d : scene.drawables) {
 			if (d.transform->name == "dingus") {
 				d.pipeline.textures->texture = dingus_tex;
+			}
+			if (d.transform->name.substr(0, 5) == "Floor") {
+				d.pipeline.textures->texture = wood_tex;
 			}
 		}
 	}
