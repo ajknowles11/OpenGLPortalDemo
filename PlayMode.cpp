@@ -133,6 +133,10 @@ Load< Scene::Texture > wood_texture(LoadTagDefault, []() -> Scene::Texture const
 	return new Scene::Texture(data_path("textures/wood.png"));
 });
 
+Load< Scene::Texture > brick_texture(LoadTagDefault, []() -> Scene::Texture const * {
+	return new Scene::Texture(data_path("textures/stonebrick.png"));
+});
+
 
 // ---------------------------
 
@@ -142,8 +146,8 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	//create a player transform:
 	scene.transforms.emplace_back();
 	player.transform = &scene.transforms.back();
-	player.transform->position = glm::vec3(-2.0f, 0.0f, 0.0f);
-	player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(-70.0f)));
+	player.transform->position = glm::vec3(0.0f, 0.0f, 0.0f);
+	player.transform->rotation = glm::quat(glm::vec3(0.0f, 0.0f, glm::radians(-90.0f)));
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -157,7 +161,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
 
 	//rotate camera facing direction (-z) to player facing direction (+y):
-	player.camera->transform->rotation = glm::quat(glm::vec3(glm::radians(70.0f), 0.0f, 0.0f));
+	player.camera->transform->rotation = glm::quat(glm::vec3(glm::radians(80.0f), 0.0f, 0.0f));
 
 	//gather walkmeshes
 	{
@@ -225,14 +229,18 @@ PlayMode::PlayMode() : scene(*level_scene) {
 
 		GLuint dingus_tex = make_tex(dingus_texture, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE, GL_LINEAR, GL_LINEAR);
 		GLuint wood_tex = make_tex(wood_texture, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
+		GLuint brick_tex = make_tex(brick_texture, GL_REPEAT, GL_REPEAT, GL_LINEAR, GL_LINEAR);
 		
 
 		for (auto &d : scene.drawables) {
 			if (d.transform->name == "dingus") {
 				d.pipeline.textures->texture = dingus_tex;
 			}
-			if (d.transform->name.substr(0, 5) == "Floor") {
+			if (d.transform->name.substr(0, 5) == "Floor" || d.transform->name.substr(0, 4) == "Ceil") {
 				d.pipeline.textures->texture = wood_tex;
+			}
+			if (d.transform->name.substr(0, 4) == "Wall") {
+				d.pipeline.textures->texture = brick_tex;
 			}
 		}
 	}
