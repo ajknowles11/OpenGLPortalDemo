@@ -245,7 +245,7 @@ struct Scene {
 		Portal const *from = nullptr) const;
 	
 	// Technically can't draw beyond 255 here but feel free to go above to waste resources
-	GLint default_draw_recursion_max = 15;
+	GLint default_draw_recursion_max = 4;
 
 	//This helper function draws normal drawables
 	void draw_non_portals(glm::mat4 const &world_to_clip, 
