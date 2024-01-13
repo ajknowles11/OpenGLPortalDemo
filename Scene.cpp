@@ -124,6 +124,7 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 	glm::mat4 const &world_to_clip = cam_projection * glm::mat4(cam_transform.make_world_to_local());
 	static glm::mat4x3 const &world_to_light = glm::mat4x3(1.0f);
 
+	// rare instance in which no current_group provided, so don't draw any portals
 	if (from == nullptr && current_group == nullptr) {
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
