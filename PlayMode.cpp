@@ -189,6 +189,7 @@ PlayMode::PlayMode() : scene(*level_scene) {
 	
 	//Button scripting
 	for (auto &b : scene.buttons) {
+		// Example of how a button named "Lever" might be set up to rotate a transform.
 		if (b.name == "Lever") {
 			b.on_pressed = [&](){
 				b.hit = !b.hit;
