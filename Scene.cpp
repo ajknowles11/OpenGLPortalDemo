@@ -230,14 +230,11 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_ALWAYS);
 		
-		// Clear the depth buffer within portal using our hack again
+		// Enable stencil test and make depth always write
 		glEnable(GL_STENCIL_TEST);
 		glStencilMask(0x00);
 		glStencilFunc(GL_EQUAL, recursion_lvl + 1, 0xFF);
-		glDepthRange(1, 1);
 		glDepthFunc(GL_ALWAYS);
-		draw_fullscreen_tri();
-		glDepthRange(0, 1);
 		
 		// Draw portal into depth buffer
 		draw_one(*p->drawable, world_to_clip, world_to_light, 2, clip_plane, p_clip_plane);
