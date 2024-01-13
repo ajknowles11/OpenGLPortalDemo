@@ -225,39 +225,29 @@ void Scene::draw(glm::mat4 const &cam_projection, Transform const &cam_transform
 		// Disable color drawing
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		
-		// Enable depth drawing
+		// Enable depth drawing and set depth to always pass
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_ALWAYS);
 		
-		// Enable stencil test and make depth always write
+		// Enable stencil test, pass inside new portal. 
 		glEnable(GL_STENCIL_TEST);
-		glStencilMask(0x00);
 		glStencilFunc(GL_EQUAL, recursion_lvl + 1, 0xFF);
-		glDepthFunc(GL_ALWAYS);
-		
-		// Draw portal into depth buffer
-		draw_one(*p->drawable, world_to_clip, world_to_light, 2, clip_plane, p_clip_plane);
-
-		// Disable depth drawing and test
-		glDisable(GL_DEPTH_TEST);
-		glDepthMask(GL_FALSE);
-		glDepthFunc(GL_LESS);
 
 		// Enable stencil drawing
 		glStencilMask(0xFF);
 
-		// Fail stencil test when inside of our newly rendered inner portal
-		glStencilFunc(GL_NOTEQUAL, recursion_lvl + 1, 0xFF);
-
-		// Decrement stencil value on stencil fail
+		// Decrement stencil value on stencil pass
 		// This resets the incremented values to what they were before,
 		// eventually ending up with a stencil buffer full of zero's again
 		// after the last (outer) step.
-		glStencilOp(GL_DECR, GL_KEEP, GL_KEEP);
-
-		// Draw portal into stencil buffer
+		glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
+		
+		// Draw portal into depth and stencil buffer
 		draw_one(*p->drawable, world_to_clip, world_to_light, 2, clip_plane, p_clip_plane);
+
+		// Reset depth func to less
+		glDepthFunc(GL_LESS);
 	}
 
 	// Draw at stencil >= recursionlevel
